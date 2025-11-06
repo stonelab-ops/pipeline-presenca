@@ -1,0 +1,20 @@
+# 1. Arquivos de Configuração Local e Segredos
+config.py
+
+# 2. Dados de Teste e Saídas
+test_data/
+raw_data_local/
+output/
+
+# 3. Ambiente Virtual do Python
+venv/
+*.venv/
+.venv/
+
+# 4. Arquivos de Cache do Python
+__pycache__/
+*.pyc
+
+# 5. Arquivos de Configuração de IDE
+.vscode/
+.idea/
