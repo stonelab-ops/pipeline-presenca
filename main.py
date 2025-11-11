@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 def run_local_pipeline():
     """
-    Executa o pipeline no modo 'local' lendo o ANO e MES do config.py
+    Executa o pipeline no modo 'local' 
     """
     log.info(" Iniciando Pipeline - MODO: LOCAL ")
     

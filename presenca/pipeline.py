@@ -1,5 +1,3 @@
-# presenca/pipeline.py
-
 import logging
 from typing import Dict, Any
 from .utils.data_reader import DataReader
@@ -12,17 +10,17 @@ from .domain.services.kpi_calculator import KpiCalculator
 from .domain.services.report_generators.action_sheets import ActionSheetGenerator
 from .domain.services.report_generators.summary_sheet import SummarySheetGenerator
 from .domain.services.report_generators.kpi_sheets import KpiSheetGenerator
+import pandas as pd
+import calendar
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 log = logging.getLogger(__name__)
 
 class PresencePipeline:
-    """
-    Orquestrador principal que define a sequência de operações 
-    para gerar os relatórios de presença.
-    """
-    def __init__(self, data_reader: DataReader, data_writer: DataWriter, config: Dict[str, Any]):
+    
+    def __init__(self, data_reader: DataReader, data_writer: DataWriter, config: object):
         self.data_reader = data_reader
         self.data_writer = data_writer
         self.config = config
@@ -31,10 +29,21 @@ class PresencePipeline:
         log.info("Pipeline de Presença inicializado.")
 
     def run(self) -> str:
-        """
-        Executa o pipeline completo de processamento e geração de relatórios.
-        """
+        
         try:
+            try:
+                ano = self.config.ANO_DO_RELATORIO
+                mes = self.config.MES_DO_RELATORIO
+                data_inicio = datetime(ano, mes, 1).date()
+                _, ultimo_dia = calendar.monthrange(ano, mes)
+                data_fim = datetime(ano, mes, ultimo_dia).date()
+                
+                self.config.DATA_INICIO_GERAL = data_inicio.strftime('%Y-%m-%d')
+                self.config.DATA_FIM_GERAL = data_fim.strftime('%Y-%m-%d')
+            except Exception as e:
+                log.error(f"Erro ao calcular datas do relatório: {e}")
+                raise
+
             log.info("Iniciando 1/5: Leitura de Dados...")
             all_data = self.data_reader.load_all_sources()
             
@@ -46,9 +55,20 @@ class PresencePipeline:
 
             log.info("Iniciando 3/5: Construção do Relatório Base...")
             
+            df_cadastro_completo = processed_data['cadastro']
+            
+            if not processed_data['registros_final'].empty:
+                ids_com_presenca = processed_data['registros_final']['id_stonelab'].unique()
+                df_alunos_ativos_para_relatorio = df_cadastro_completo[
+                    df_cadastro_completo['id_stonelab'].isin(ids_com_presenca)
+                ].copy()
+            else:
+                log.warning("Nenhum registro final encontrado. O relatório base estará vazio.")
+                df_alunos_ativos_para_relatorio = pd.DataFrame(columns=df_cadastro_completo.columns)
+            
             base_builder = BaseReportBuilder(self.config)
             base_report = base_builder.build(
-                active_students=processed_data['registros_final'], 
+                active_students=df_alunos_ativos_para_relatorio, 
                 tenures=tenures
             )
 
@@ -70,11 +90,7 @@ class PresencePipeline:
             log.info("Iniciando 4/5: Geração das Abas de Saída...")
             
             action_gen = ActionSheetGenerator(processed_data, self.config)
-            
-            # --- LINHA CORRIGIDA ABAIXO ---
             summary_gen = SummarySheetGenerator(report_with_kpis, self.config)
-            # --- FIM DA CORREÇÃO ---
-            
             kpi_gen = KpiSheetGenerator(report_with_kpis)
 
             final_tabs = {}

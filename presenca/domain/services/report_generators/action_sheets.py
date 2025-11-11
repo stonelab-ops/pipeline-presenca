@@ -101,7 +101,8 @@ class ActionSheetGenerator:
             report_base['Situacao'].str.startswith('(')
         ].copy()
         
-        report_final_acoes.sort_values(by=['Situacao', 'nome_entrada', 'Semana'], inplace=True)
+        if not report_final_acoes.empty:
+            report_final_acoes.sort_values(by=['Situacao', 'nome_entrada', 'Semana'], inplace=True)
         
         return report_final_acoes
 
@@ -116,6 +117,11 @@ class ActionSheetGenerator:
             xml_periodo = df_registros[
                 (df_registros['Date'] >= start) & (df_registros['Date'] <= end)
             ].copy()
+            
+            if 'Datetime' in xml_periodo.columns:
+                xml_periodo['Datetime'] = pd.to_datetime(
+                    xml_periodo['Datetime'], errors='coerce'
+                ).dt.strftime('%Y-%m-%d %H:%M:%S')
             
             renamed_xml = xml_periodo.rename(columns={
                 'nome_entrada': 'Nome (XML)', 'Datetime': 'Data e Hora (XML)',
