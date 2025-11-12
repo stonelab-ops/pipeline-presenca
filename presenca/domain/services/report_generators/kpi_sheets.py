@@ -1,49 +1,92 @@
 import pandas as pd
-from datetime import date
-import unicodedata 
+import logging
+from typing import Dict, Any
+from datetime import date, datetime
+from ....utils import schema 
+
+log = logging.getLogger(__name__)
 
 class KpiSheetGenerator:
+    
     def __init__(self, report_kpi: pd.DataFrame):
         self.report_kpi = report_kpi
-        self.internal_status_col = 'Situação de Atingimento'
 
-    def generate(self) -> dict:
-        tabs = {}
-        tabs['report_raw'] = self._create_report_raw()
+    def generate(self) -> Dict[str, pd.DataFrame]:
+        
+        report_raw_output = self._prepare_report_raw_output()
         
         gpb = self._calculate_base_metrics()
-        tabs.update(self._create_pivot_tabs(gpb))
         
-        tabs['kpi_geral_presenca'] = self._create_kpi_geral_tab(gpb)
-        return tabs
+        if gpb.empty:
+            log.warning("KpiSheets: DataFrame base (gpb) está vazio. Abas de KPI estarão vazias.")
+            return {
+                schema.ABA_REPORT_RAW: report_raw_output,
+                schema.ABA_PIVOT_TOTAL: pd.DataFrame(),
+                schema.ABA_PIVOT_ATINGIDOS: pd.DataFrame(),
+                schema.ABA_PIVOT_PCT: pd.DataFrame(),
+                schema.ABA_KPI_GERAL: pd.DataFrame()
+            }
 
-    def _create_report_raw(self) -> pd.DataFrame:
-        translation = {
-            "name": "Nome", "function": "Função", "coordinator": "Coordenador",
-            "date": "Semana", "observed_frequency": "Freq Obs",
-            "expected_frequency": "Freq Esp", "workdays": "Dias Úteis",
-            "justified_days": "Falt Just", "vacation_days": "Dias de Férias",
-            self.internal_status_col: "Situação de Atingimento"
+        pivots = self._generate_pivots(gpb)
+        kpi_geral = self._generate_kpi_geral(gpb)
+        
+        final_tabs = {
+            schema.ABA_REPORT_RAW: report_raw_output,
+            schema.ABA_KPI_GERAL: kpi_geral
         }
-        renamed = self.report_kpi.rename(columns=translation)
+        final_tabs.update(pivots)
+        
+        return final_tabs
+
+    def _prepare_report_raw_output(self) -> pd.DataFrame:
+        if self.report_kpi.empty:
+            return pd.DataFrame()
             
-        cols = [c for c in translation.values() if c in renamed.columns]
-        return renamed[cols]
+        column_map = {
+            schema.COL_NAME: schema.OUT_COL_NOME,
+            schema.COL_FUNCTION: schema.OUT_COL_FUNCAO,
+            schema.COL_COORDINATOR: schema.OUT_COL_COORDENADOR,
+            schema.COL_DATE: schema.OUT_COL_SEMANA,
+            "observed_frequency": schema.OUT_COL_FREQ_OBS,
+            "expected_frequency": schema.OUT_COL_FREQ_ESP,
+            "workdays": schema.OUT_COL_DIAS_UTEIS,
+            "justified_days": schema.OUT_COL_FALTAS_JUST,
+            "vacation_days": schema.OUT_COL_DIAS_FERIAS,
+            schema.OUT_COL_SITUACAO: schema.OUT_COL_SITUACAO
+        }
+        
+        cols_to_keep = [col for col in column_map.keys() if col in self.report_kpi.columns]
+        report_output = self.report_kpi[cols_to_keep].copy()
+        
+        report_output.rename(columns=column_map, inplace=True)
+        
+        return report_output
 
 
     def _calculate_base_metrics(self) -> pd.DataFrame:
         
+        if self.report_kpi.empty:
+            log.warning("KpiSheets: report_kpi está vazio, pulando _calculate_base_metrics.")
+            return pd.DataFrame()
+            
+        if schema.OUT_COL_SITUACAO not in self.report_kpi.columns:
+            log.error(f"KpiSheets: Coluna '{schema.OUT_COL_SITUACAO}' não encontrada.")
+            return pd.DataFrame()
 
-        report = self.report_kpi[
-            self.report_kpi['Situação de Atingimento'].str.strip() != "Semana Justificada"
+        df = self.report_kpi[
+            self.report_kpi[schema.OUT_COL_SITUACAO].str.strip() != schema.STATUS_JUSTIFICADO
         ].copy()
-    
-        report["Atingimento_Bin"] = report["Situação de Atingimento"].map(
-            lambda x: 1 if x.strip() == "Atingiu" else 0 
+        
+        if df.empty:
+            log.warning("KpiSheets: Nenhum dado não-justificado para calcular métricas base.")
+            return pd.DataFrame()
+
+        df["Atingimento_Bin"] = df[schema.OUT_COL_SITUACAO].map(
+            lambda x: 1 if x == schema.STATUS_ATINGIU else 0
         )
         
-        gpb = report.groupby(by=["coordinator", "date"]).agg(
-            total_de_alunos=("id_stonelab", "count"),
+        gpb = df.groupby(by=[schema.COL_COORDINATOR, schema.COL_DATE]).agg(
+            total_de_alunos=(schema.COL_ID_STONELAB, "count"),
             atingidos=("Atingimento_Bin", "sum")
         ).reset_index()
         
@@ -55,29 +98,43 @@ class KpiSheetGenerator:
         
         return gpb
 
-    def _create_pivot_tabs(self, gpb: pd.DataFrame) -> dict:
+    def _generate_pivots(self, gpb: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        
         pivots = {}
-        for field in ["total_de_alunos", "atingidos", "pct_atingimento"]:
+        pivot_fields = {
+            "total_de_alunos": schema.ABA_PIVOT_TOTAL,
+            "atingidos": schema.ABA_PIVOT_ATINGIDOS,
+            "pct_atingimento": schema.ABA_PIVOT_PCT
+        }
+        
+        for field_name, tab_name in pivot_fields.items():
             pivot = pd.pivot_table(
-                gpb, values=field, index="coordinator",
-                columns="date", aggfunc="sum"
+                gpb, 
+                values=field_name, 
+                index=schema.COL_COORDINATOR, 
+                columns=schema.COL_DATE, 
+                aggfunc="sum"
             ).reset_index().fillna(0)
+            
             pivot.columns = [
-                c.strftime('%Y-%m-%d') if isinstance(c, (date, pd.Timestamp)) else c
-                for c in pivot.columns
+                col.strftime('%Y-%m-%d') if isinstance(col, (date, datetime)) else col 
+                for col in pivot.columns
             ]
-            pivots[f'{field}_pivot'] = pivot
+            pivots[tab_name] = pivot
+        
         return pivots
 
-    def _create_kpi_geral_tab(self, gpb: pd.DataFrame) -> pd.DataFrame:
-        kpi_geral = gpb.groupby("date").agg(
+    def _generate_kpi_geral(self, gpb: pd.DataFrame) -> pd.DataFrame:
+        
+        kpi_geral = gpb.groupby(schema.COL_DATE).agg(
             total_de_alunos=("total_de_alunos", "sum"),
             atingidos=("atingidos", "sum")
         ).reset_index()
+        
         kpi_geral["KPI_Presenca"] = 0.0
         mask = kpi_geral["total_de_alunos"] > 0
-        
-        division_result = (kpi_geral.loc[mask, "atingidos"] / kpi_geral.loc[mask, "total_de_alunos"])
-        kpi_geral.loc[mask, "KPI_Presenca"] = pd.to_numeric(division_result).round(2)
+        kpi_geral.loc[mask, "KPI_Presenca"] = (
+            kpi_geral.loc[mask, "atingidos"] / kpi_geral.loc[mask, "total_de_alunos"]
+        ).round(2)
         
         return kpi_geral

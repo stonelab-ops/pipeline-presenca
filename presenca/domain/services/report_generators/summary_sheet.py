@@ -1,4 +1,5 @@
 import pandas as pd
+from ....utils import schema 
 
 class SummarySheetGenerator:
     def __init__(self, report_kpi: pd.DataFrame, config: dict):
@@ -6,24 +7,27 @@ class SummarySheetGenerator:
         self.config = config
 
     def generate(self) -> dict:
-        if self.report_kpi.empty:
-            return {"Resumo_por_Aluno": pd.DataFrame()}
+        if self.report_kpi.empty or schema.OUT_COL_SITUACAO not in self.report_kpi.columns:
+            return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
             
         df = self.report_kpi[
-            self.report_kpi['Situação de Atingimento'] != "Semana Justificada"
+            self.report_kpi[schema.OUT_COL_SITUACAO] != schema.STATUS_JUSTIFICADO
         ].copy()
         
-        df["Atingimento_Bin"] = df["Situação de Atingimento"].map(
-            lambda x: 1 if x == "Atingiu" else 0
+        if df.empty:
+            return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
+            
+        df["Atingimento_Bin"] = df[schema.OUT_COL_SITUACAO].map(
+            lambda x: 1 if x == schema.STATUS_ATINGIU else 0
         )
         
-        resumo = df.groupby(['name', 'coordinator']).agg(
-            semanas_contabilizadas=('date', 'count'),
+        resumo = df.groupby([schema.COL_NAME, schema.COL_COORDINATOR]).agg(
+            semanas_contabilizadas=(schema.COL_DATE, 'count'),
             semanas_atingidas=('Atingimento_Bin', 'sum')
         ).reset_index()
         
         if resumo.empty:
-            return {"Resumo_por_Aluno": pd.DataFrame()}
+            return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
             
         resumo['pct'] = (
             resumo['semanas_atingidas'] / resumo['semanas_contabilizadas']
@@ -36,9 +40,12 @@ class SummarySheetGenerator:
         )
         
         resumo.rename(
-            columns={'name': 'Nome do Aluno', 'coordinator': 'Coordenador',
-                     'Status': 'Situacao Geral no Mês'},
+            columns={
+                schema.COL_NAME: 'Nome do Aluno', 
+                schema.COL_COORDINATOR: 'Coordenador',
+                'Status': 'Situacao Geral no Mês'
+            },
             inplace=True
         )
         cols = ['Nome do Aluno', 'Coordenador', 'Situacao Geral no Mês']
-        return {"Resumo_por_Aluno": resumo[cols]}
+        return {schema.ABA_RESUMO_POR_ALUNO: resumo[cols]}
