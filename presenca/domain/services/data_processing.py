@@ -2,13 +2,16 @@ import pandas as pd
 from typing import Dict
 from ..factory import TenureFactory
 from ..models.tenure import Tenure
+import logging
+
+log = logging.getLogger(__name__)
 
 class DataProcessingService:
     def __init__(self, data_frames: dict, config: dict):
         self.data = data_frames
         self.config = config
         self.tenure_factory = TenureFactory()
-        print("Serviço de Processamento de Dados inicializado.")
+        log.info("Serviço de Processamento de Dados inicializado.")
 
     def run(self) -> dict:
         """Orquestra o fluxo de processamento e retorna os dados limpos."""
@@ -23,6 +26,7 @@ class DataProcessingService:
         Esta função agora processa 'cadastro' mesmo se 'registros_brutos' estiver vazio.
         """
         
+        # --- Bloco 1: Processar Registros Brutos (XMLs) ---
         df_registros = self.data['registros_brutos']
         if not df_registros.empty:
             df_registros.dropna(subset=['Datetime', 'Name'], inplace=True)
@@ -35,6 +39,7 @@ class DataProcessingService:
             df_registros.rename(columns={'Name': 'nome_entrada'}, inplace=True)
             self.data['registros_brutos'] = df_registros
         
+        # --- Bloco 2: Processar Cadastro (CSV) ---
         df_depara = self.data['cadastro']
         df_depara.columns = df_depara.columns.str.strip()
         df_depara.rename(columns={
@@ -73,7 +78,7 @@ class DataProcessingService:
         self.data['tenures'] = tenures
         
         if self.data['registros_brutos'].empty:
-            self.data['registros_final'] = pd.DataFrame() 
+            self.data['registros_final'] = pd.DataFrame()
             return
 
         df_registros_alunos = pd.merge(

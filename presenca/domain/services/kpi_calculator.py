@@ -1,38 +1,62 @@
 import pandas as pd
-import logging 
+import logging
+import numpy as np
 
-log = logging.getLogger(__name__) 
+log = logging.getLogger(__name__)
+
 class KpiCalculator:
-    """
-    Especialista responsável por aplicar a lógica de negócio final
-    para calcular os KPIs de atingimento.
-    """
+
     def __init__(self, report: pd.DataFrame, data_frames: dict, config: dict):
         self.report = report
         self.data = data_frames
         self.config = config
-        print("Serviço de Cálculo de KPI inicializado.")
+        log.info("Serviço de Cálculo de KPI inicializado.")
 
     def calculate(self) -> pd.DataFrame:
-        """
-        Orquestra o processo de cálculo de KPIs.
-        """
         report_kpi = self._filter_report_for_month()
         report_kpi = self._apply_precise_frequency(report_kpi)
         
         if report_kpi.empty:
             log.warning("Relatório de KPI está vazio, pulando cálculo de 'Situação de Atingimento'.")
             return report_kpi
-            
-        report_kpi["Situação de Atingimento"] = report_kpi.apply(
-            self._get_attainment_status, axis=1
+
+        # --- INÍCIO DA LÓGICA VETORIZADA ---
+        
+        report_kpi['dias_faltados'] = report_kpi['expected_frequency'] - report_kpi['observed_frequency']
+        
+        ratio_obs = (
+            report_kpi['observed_frequency'] / report_kpi['workdays']
+        ).replace([np.inf, -np.inf], 0).fillna(0)
+        
+        ratio_exp = (report_kpi['expected_frequency'] / 5).fillna(0)
+
+        conditions = [
+            (report_kpi['expected_frequency'] == 0),
+            (report_kpi['workdays'] <= 1),
+            (report_kpi['dias_faltados'] > 0) & (report_kpi['dias_faltados'] <= report_kpi['justified_days']),
+            (ratio_obs >= ratio_exp) & (report_kpi['workdays'] > 0)
+        ]
+        
+        choices = [
+            "Atingiu",
+            "Semana Justificada",
+            "Semana Justificada",
+            "Atingiu"
+        ]
+
+        report_kpi['Situação de Atingimento'] = np.select(
+            conditions, 
+            choices, 
+            default="Não Atingiu"
         )
+        
+        report_kpi.drop(columns=['dias_faltados'], inplace=True)
+        
+        # --- FIM DA LÓGICA VETORIZADA ---
         
         return report_kpi
 
     def _filter_report_for_month(self) -> pd.DataFrame:
-        """Filtra o relatório mestre para o período do relatório atual."""
-        
         if self.report.empty:
             return self.report
             
@@ -45,7 +69,6 @@ class KpiCalculator:
         ].copy()
 
     def _apply_precise_frequency(self, report_kpi: pd.DataFrame) -> pd.DataFrame:
-        """Aplica a lógica de 'Filtro Duplo' para recalcular a Freq. Obs."""
         start_date = pd.to_datetime(self.config.DATA_INICIO_GERAL).date()
         end_date = pd.to_datetime(self.config.DATA_FIM_GERAL).date()
         
@@ -89,27 +112,3 @@ class KpiCalculator:
             'observed_frequency'
         ].fillna(0).astype(int)
         return report_kpi
-
-    def _get_attainment_status(self, row) -> str:
-        """Aplica a cascata de regras para definir o status de atingimento."""
-        
-        if row['expected_frequency'] == 0:
-            return "Atingiu"
-        if row["workdays"] <= 1:
-            return "Semana Justificada"
-
-        dias_faltados = row['expected_frequency'] - row['observed_frequency']
-        if dias_faltados > 0 and dias_faltados <= row['justified_days']:
-            return "Semana Justificada"
-            
-        atingiu_proporcional = False
-        if row["workdays"] > 0:
-            atingiu_proporcional = (
-                (row["observed_frequency"] / row["workdays"]) >= 
-                (row["expected_frequency"] / 5)
-            )
-            
-        if atingiu_proporcional: 
-            return "Atingiu"
-            
-        return "Não Atingiu"
