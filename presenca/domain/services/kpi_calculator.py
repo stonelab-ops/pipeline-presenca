@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 import numpy as np
+from ...utils import schema
 
 log = logging.getLogger(__name__)
 
@@ -17,11 +18,9 @@ class KpiCalculator:
         report_kpi = self._apply_precise_frequency(report_kpi)
         
         if report_kpi.empty:
-            log.warning("Relatório de KPI está vazio, pulando cálculo de 'Situação de Atingimento'.")
+            log.warning("KpiCalculator: Relatório base está vazio, pulando cálculo de 'Situação de Atingimento'.")
             return report_kpi
 
-        # --- INÍCIO DA LÓGICA VETORIZADA ---
-        
         report_kpi['dias_faltados'] = report_kpi['expected_frequency'] - report_kpi['observed_frequency']
         
         ratio_obs = (
@@ -38,21 +37,19 @@ class KpiCalculator:
         ]
         
         choices = [
-            "Atingiu",
-            "Semana Justificada",
-            "Semana Justificada",
-            "Atingiu"
+            schema.STATUS_ATINGIU,
+            schema.STATUS_JUSTIFICADO,
+            schema.STATUS_JUSTIFICADO,
+            schema.STATUS_ATINGIU
         ]
 
-        report_kpi['Situação de Atingimento'] = np.select(
+        report_kpi[schema.OUT_COL_SITUACAO] = np.select(
             conditions, 
             choices, 
-            default="Não Atingiu"
+            default=schema.STATUS_NAO_ATINGIU
         )
         
         report_kpi.drop(columns=['dias_faltados'], inplace=True)
-        
-        # --- FIM DA LÓGICA VETORIZADA ---
         
         return report_kpi
 
@@ -64,8 +61,8 @@ class KpiCalculator:
         end_date = pd.to_datetime(self.config.DATA_FIM_GERAL)
         
         return self.report[
-            (pd.to_datetime(self.report["date"]) >= start_date) &
-            (pd.to_datetime(self.report["date"]) <= end_date)
+            (pd.to_datetime(self.report[schema.COL_DATE]) >= start_date) &
+            (pd.to_datetime(self.report[schema.COL_DATE]) <= end_date)
         ].copy()
 
     def _apply_precise_frequency(self, report_kpi: pd.DataFrame) -> pd.DataFrame:
@@ -75,18 +72,18 @@ class KpiCalculator:
         df_registros_final = self.data['registros_final']
 
         if df_registros_final.empty:
-            log.warning("DataFrame 'registros_final' está vazio. Frequência observada será 0.")
+            log.warning("KpiCalculator: DataFrame 'registros_final' está vazio. Frequência observada será 0.")
             if not report_kpi.empty:
                 report_kpi['observed_frequency'] = 0
             return report_kpi
 
         presencas_do_mes = df_registros_final[
-            (pd.to_datetime(df_registros_final['Date']).dt.date >= start_date) & 
-            (pd.to_datetime(df_registros_final['Date']).dt.date <= end_date)
+            (pd.to_datetime(df_registros_final[schema.COL_XML_DATE]).dt.date >= start_date) & 
+            (pd.to_datetime(df_registros_final[schema.COL_XML_DATE]).dt.date <= end_date)
         ].copy() 
 
         if not presencas_do_mes.empty:
-            iso_dates = pd.to_datetime(presencas_do_mes['Date']).dt.isocalendar()
+            iso_dates = pd.to_datetime(presencas_do_mes[schema.COL_XML_DATE]).dt.isocalendar()
             presencas_do_mes['year'] = iso_dates.year
             presencas_do_mes['week'] = iso_dates.week
         else:
@@ -94,7 +91,7 @@ class KpiCalculator:
             presencas_do_mes['week'] = []
 
         freq_obs_precisa = presencas_do_mes.groupby(
-            ['id_stonelab', 'year', 'week']
+            [schema.COL_ID_STONELAB, 'year', 'week']
         ).size().reset_index(name='observed_frequency_precisa')
         
         if 'observed_frequency' in report_kpi.columns:
@@ -102,7 +99,7 @@ class KpiCalculator:
             
         report_kpi = pd.merge(
             report_kpi, freq_obs_precisa, 
-            on=['id_stonelab', 'year', 'week'], how='left'
+            on=[schema.COL_ID_STONELAB, 'year', 'week'], how='left'
         )
         report_kpi.rename(
             columns={'observed_frequency_precisa': 'observed_frequency'}, 
