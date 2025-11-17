@@ -6,7 +6,7 @@ from .domain.factory import TenureFactory
 from .domain.services.data_processing import DataProcessingService
 from .domain.services.base_report_builder import BaseReportBuilder
 from .domain.services.weekly_report_enhancer import WeeklyReportEnhancer
-from .domain.services.kpi_calculator import KpiCalculator
+from .domain.services.kpi_calculator_padrao import KpiCalculatorPadrao
 from .domain.services.report_generators.action_sheets import ActionSheetGenerator
 from .domain.services.report_generators.summary_sheet import SummarySheetGenerator
 from .domain.services.report_generators.kpi_sheets import KpiSheetGenerator
@@ -26,7 +26,7 @@ class PresencePipeline:
         self.config = config
         
         self.tenure_factory = TenureFactory()
-        log.info("Pipeline de Presença inicializado.")
+        log.info("Pipeline de Presença: Iniciando execução.")
 
     def run(self) -> str:
         
@@ -41,19 +41,19 @@ class PresencePipeline:
                 self.config.DATA_INICIO_GERAL = data_inicio.strftime('%Y-%m-%d')
                 self.config.DATA_FIM_GERAL = data_fim.strftime('%Y-%m-%d')
             except Exception as e:
-                log.error(f"Erro ao calcular datas do relatório: {e}")
+                log.error(f"Falha ao calcular datas do relatório: {e}")
                 raise
 
-            log.info("Iniciando 1/5: Leitura de Dados...")
+            log.info("Leitura: Carregando fontes de dados (XMLs e Planilhas)...")
             all_data = self.data_reader.load_all_sources()
             
-            log.info("Iniciando 2/5: Processamento de Dados...")
+            log.info("Processamento: Limpando e preparando dados brutos...")
             tenures = self.tenure_factory.create_tenures_from_df(all_data['io_alunos'])
             
             processor_service = DataProcessingService(all_data, self.config)
             processed_data = processor_service.run()
 
-            log.info("Iniciando 3/5: Construção do Relatório Base...")
+            log.info("Construção: Gerando relatório base semanal...")
             
             df_cadastro_completo = processed_data['cadastro']
             
@@ -68,7 +68,7 @@ class PresencePipeline:
             
             base_builder = BaseReportBuilder(self.config)
             base_report = base_builder.build(
-                active_students=df_alunos_ativos_para_relatorio, 
+                active_students=df_alunos_ativos_para_relatorio,
                 tenures=tenures
             )
 
@@ -82,12 +82,12 @@ class PresencePipeline:
                 tenures=tenures
             )
             
-            calculator = KpiCalculator(weekly_report, processed_data, self.config)
+            calculator = KpiCalculatorPadrao(weekly_report, processed_data, self.config)
             report_with_kpis = calculator.calculate()
             
-            log.info("Relatório base com KPIs concluído.")
+            log.info("Cálculo de KPI: Status de atingimento concluído.")
 
-            log.info("Iniciando 4/5: Geração das Abas de Saída...")
+            log.info("Geração de Abas: Formatando relatórios de saída...")
             
             action_gen = ActionSheetGenerator(processed_data, self.config)
             summary_gen = SummarySheetGenerator(report_with_kpis, self.config)
@@ -98,19 +98,19 @@ class PresencePipeline:
             final_tabs.update(summary_gen.generate())
             final_tabs.update(kpi_gen.generate())
             
-            log.info(f"Abas geradas: {list(final_tabs.keys())}")
+            log.info(f"Geração de Abas: {len(final_tabs)} abas criadas.")
 
-            log.info("Iniciando 5/5: Escrita do Arquivo Excel...")
+            log.info("Escrita: Salvando arquivo Excel final...")
             output_file_path = self.data_writer.save_report_to_excel(
                 report_tabs=final_tabs,
                 base_filename="relatorio_presenca_stonelab"
             )
             
-            log.info(f"--- SUCESSO! Pipeline concluído. ---")
-            log.info(f"Arquivo de saída salvo em: {output_file_path}")
+            log.info("Sucesso: Pipeline concluído.")
+            log.info(f"Arquivo final salvo em: {output_file_path}")
             
             return output_file_path
 
         except Exception as e:
-            log.error(f"--- FALHA NO PIPELINE: {e} ---", exc_info=True)
+            log.error(f"Falha no Pipeline: {e}", exc_info=True)
             return ""

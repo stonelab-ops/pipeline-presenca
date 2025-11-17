@@ -3,7 +3,7 @@ from typing import Dict
 from ..factory import TenureFactory
 from ..models.tenure import Tenure
 import logging
-from ...utils import schema 
+from ...utils import schema
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class DataProcessingService:
         self.data = data_frames
         self.config = config
         self.tenure_factory = TenureFactory()
-        log.info("Serviço de Processamento de Dados inicializado.")
+        log.info("Processador de Dados: Inicializado.")
 
     def run(self) -> dict:
         self._clean_and_rename_base_dfs()
@@ -21,12 +21,6 @@ class DataProcessingService:
         return self.data
 
     def _clean_and_rename_base_dfs(self):
-        """
-        Limpa e renomeia os DataFrames base.
-        Esta função agora processa 'cadastro' mesmo se 'registros_brutos' estiver vazio.
-        """
-        
-        # --- Bloco 1: Processar Registros Brutos (XMLs) ---
         df_registros = self.data['registros_brutos']
         if not df_registros.empty:
             df_registros.dropna(subset=['Datetime', 'Name'], inplace=True)
@@ -39,10 +33,9 @@ class DataProcessingService:
             df_registros.rename(columns={'Name': schema.COL_NOME_ENTRADA}, inplace=True)
             self.data['registros_brutos'] = df_registros
         
-        # --- Bloco 2: Processar Cadastro (CSV) ---
         df_depara = self.data['cadastro']
         df_depara.columns = df_depara.columns.str.strip()
-
+        
         df_depara.rename(columns={
             schema.CADASTRO_NOME_COMPLETO: schema.COL_NAME,
             schema.CADASTRO_FUNCAO: schema.COL_FUNCTION,
