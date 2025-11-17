@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 import numpy as np
-from ...utils import schema 
+from ...utils import schema
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class KpiCalculator:
         report_kpi = self._apply_precise_frequency(report_kpi)
         
         if report_kpi.empty:
-            log.warning("Relatório de KPI está vazio, pulando cálculo de 'Situação de Atingimento'.")
+            log.warning("KpiCalculator: Relatório base está vazio, pulando cálculo de 'Situação de Atingimento'.")
             return report_kpi
 
         report_kpi['dias_faltados'] = report_kpi['expected_frequency'] - report_kpi['observed_frequency']
@@ -72,7 +72,7 @@ class KpiCalculator:
         df_registros_final = self.data['registros_final']
 
         if df_registros_final.empty:
-            log.warning("DataFrame 'registros_final' está vazio. Frequência observada será 0.")
+            log.warning("KpiCalculator: DataFrame 'registros_final' está vazio. Frequência observada será 0.")
             if not report_kpi.empty:
                 report_kpi['observed_frequency'] = 0
             return report_kpi
