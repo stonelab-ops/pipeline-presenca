@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict
-from ..factory import TenureFactory
+from ..factory import TenureFactory, CoordinatorFactory
 from ..models.tenure import Tenure
 import logging
 from ...utils import schema
@@ -12,6 +12,7 @@ class DataProcessingService:
         self.data = data_frames
         self.config = config
         self.tenure_factory = TenureFactory()
+        self.coordinator_factory = CoordinatorFactory()
         log.info("Processador de Dados: Inicializado.")
 
     def run(self) -> dict:
@@ -43,6 +44,11 @@ class DataProcessingService:
             schema.CADASTRO_ID_STONELAB: schema.COL_ID_STONELAB,
             schema.CADASTRO_NOME_ENTRADA: schema.COL_NOME_ENTRADA
         }, inplace=True)
+        
+        df_depara[schema.COL_COORDINATOR] = df_depara[schema.COL_COORDINATOR].apply(
+            self.coordinator_factory.get_or_create
+        )
+        
         self.data['cadastro'] = df_depara
 
     def _apply_ignore_list(self):

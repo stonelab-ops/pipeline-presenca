@@ -1,5 +1,6 @@
 import pandas as pd
-from ....utils import schema 
+from ....utils import schema
+from ...models.coordinator import Coordinator
 
 class SummarySheetGenerator:
     def __init__(self, report_kpi: pd.DataFrame, config: dict):
@@ -21,7 +22,11 @@ class SummarySheetGenerator:
             lambda x: 1 if x == schema.STATUS_ATINGIU else 0
         )
         
-        resumo = df.groupby([schema.COL_NAME, schema.COL_COORDINATOR]).agg(
+        df['coordinator_name'] = df[schema.COL_COORDINATOR].apply(
+            lambda x: x.name if isinstance(x, Coordinator) else str(x)
+        )
+        
+        resumo = df.groupby([schema.COL_NAME, 'coordinator_name']).agg(
             semanas_contabilizadas=(schema.COL_DATE, 'count'),
             semanas_atingidas=('Atingimento_Bin', 'sum')
         ).reset_index()
@@ -36,13 +41,13 @@ class SummarySheetGenerator:
         limiar = self.config.LIMIAR_ATINGIMENTO_GERAL
         
         resumo['Status'] = resumo['pct'].apply(
-            lambda x: 'Atingiu Meta Geral' if x >= limiar else 'Não Atingiu Meta Geral'
+            lambda x: schema.STATUS_ATINGIU if x >= limiar else schema.STATUS_NAO_ATINGIU
         )
         
         resumo.rename(
             columns={
                 schema.COL_NAME: 'Nome do Aluno', 
-                schema.COL_COORDINATOR: 'Coordenador',
+                'coordinator_name': 'Coordenador',
                 'Status': 'Situacao Geral no Mês'
             },
             inplace=True

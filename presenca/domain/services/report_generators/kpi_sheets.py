@@ -2,7 +2,8 @@ import pandas as pd
 import logging
 from typing import Dict, Any
 from datetime import date, datetime
-from ....utils import schema 
+from ....utils import schema
+from ...models.coordinator import Coordinator
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +43,13 @@ class KpiSheetGenerator:
         if self.report_kpi.empty:
             return pd.DataFrame()
             
+        report_output = self.report_kpi.copy()
+        
+        if schema.COL_COORDINATOR in report_output.columns:
+            report_output[schema.COL_COORDINATOR] = report_output[schema.COL_COORDINATOR].apply(
+                lambda x: x.name if isinstance(x, Coordinator) else str(x)
+            )
+
         column_map = {
             schema.COL_NAME: schema.OUT_COL_NOME,
             schema.COL_FUNCTION: schema.OUT_COL_FUNCAO,
@@ -55,8 +63,8 @@ class KpiSheetGenerator:
             schema.OUT_COL_SITUACAO: schema.OUT_COL_SITUACAO
         }
         
-        cols_to_keep = [col for col in column_map.keys() if col in self.report_kpi.columns]
-        report_output = self.report_kpi[cols_to_keep].copy()
+        cols_to_keep = [col for col in column_map.keys() if col in report_output.columns]
+        report_output = report_output[cols_to_keep]
         
         report_output.rename(columns=column_map, inplace=True)
         
@@ -85,7 +93,11 @@ class KpiSheetGenerator:
             lambda x: 1 if x == schema.STATUS_ATINGIU else 0
         )
         
-        gpb = df.groupby(by=[schema.COL_COORDINATOR, schema.COL_DATE]).agg(
+        df['coordinator_name'] = df[schema.COL_COORDINATOR].apply(
+            lambda x: x.name if isinstance(x, Coordinator) else str(x)
+        )
+        
+        gpb = df.groupby(by=['coordinator_name', schema.COL_DATE]).agg(
             total_de_alunos=(schema.COL_ID_STONELAB, "count"),
             atingidos=("Atingimento_Bin", "sum")
         ).reset_index()
@@ -111,7 +123,7 @@ class KpiSheetGenerator:
             pivot = pd.pivot_table(
                 gpb, 
                 values=field_name, 
-                index=schema.COL_COORDINATOR, 
+                index='coordinator_name', 
                 columns=schema.COL_DATE, 
                 aggfunc="sum"
             ).reset_index().fillna(0)
@@ -120,6 +132,8 @@ class KpiSheetGenerator:
                 col.strftime('%Y-%m-%d') if isinstance(col, (date, datetime)) else col 
                 for col in pivot.columns
             ]
+            
+            pivot.rename(columns={'coordinator_name': schema.OUT_COL_COORDENADOR}, inplace=True)
             pivots[tab_name] = pivot
         
         return pivots

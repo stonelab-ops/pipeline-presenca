@@ -25,15 +25,11 @@ class DataWriter:
     def save_report_to_excel(self, report_tabs: Dict[str, pd.DataFrame], base_filename: str) -> str:
         
         try:
-            ano = self.config.ANO_DO_RELATORIO
-            mes = self.config.MES_DO_RELATORIO
-            analysis_period = f"{ano:04d}-{mes:02d}"
+            data_fim = self.config.DATA_FIM_GERAL
+            filename = f"{data_fim} - [StoneLab] Analytics presenca.xlsx"
         except Exception:
-            analysis_period = "Analise"
-
-        time_version = datetime.now().strftime("%Hh%Mm")
-        
-        filename = f"{base_filename}_{analysis_period}_{time_version}.xlsx"
+            time_version = datetime.now().strftime("%Y-%m-%d_%Hh%Mm")
+            filename = f"relatorio_presenca_fallback_{time_version}.xlsx"
         
         if self.mode == 'local':
             return self._save_local(report_tabs, filename)
