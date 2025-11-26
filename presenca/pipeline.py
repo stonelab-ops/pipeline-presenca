@@ -10,9 +10,11 @@ from .domain.services.kpi_calculator_padrao import KpiCalculatorPadrao
 from .domain.services.report_generators.action_sheets import ActionSheetGenerator
 from .domain.services.report_generators.summary_sheet import SummarySheetGenerator
 from .domain.services.report_generators.kpi_sheets import KpiSheetGenerator
+from .domain.services.report_generators.inactivity_sheet import InactivitySheetGenerator
 import pandas as pd
 import calendar
 from datetime import datetime
+from .utils import schema
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -24,12 +26,10 @@ class PresencePipeline:
         self.data_reader = data_reader
         self.data_writer = data_writer
         self.config = config
-        
         self.tenure_factory = TenureFactory()
         log.info("Pipeline de Presença: Iniciando execução.")
 
     def run(self) -> str:
-        
         try:
             try:
                 ano = self.config.ANO_DO_RELATORIO
@@ -52,11 +52,11 @@ class PresencePipeline:
             
             processor_service = DataProcessingService(all_data, self.config)
             processed_data = processor_service.run()
+            processed_data['justificativas'] = all_data['justificativas']
 
             log.info("Construção: Gerando relatório base semanal...")
             
             df_cadastro_completo = processed_data['cadastro']
-            
             if not processed_data['registros_final'].empty:
                 ids_com_presenca = processed_data['registros_final']['id_stonelab'].unique()
                 df_alunos_ativos_para_relatorio = df_cadastro_completo[
@@ -78,7 +78,7 @@ class PresencePipeline:
                 attendance=processed_data['registros_final'],
                 student_info=processed_data['cadastro'],
                 holidays_df=processed_data['feriados'],
-                justifications_df=processed_data['justificativas'],
+                justifications_df=processed_data['justificativas'], 
                 tenures=tenures
             )
             
@@ -86,25 +86,39 @@ class PresencePipeline:
             report_with_kpis = calculator.calculate()
             
             log.info("Cálculo de KPI: Status de atingimento concluído.")
-
             log.info("Geração de Abas: Formatando relatórios de saída...")
             
             action_gen = ActionSheetGenerator(processed_data, self.config)
             summary_gen = SummarySheetGenerator(report_with_kpis, self.config)
             kpi_gen = KpiSheetGenerator(report_with_kpis)
+            inactivity_gen = InactivitySheetGenerator(processed_data, self.config)
 
             final_tabs = {}
             final_tabs.update(action_gen.generate())
             final_tabs.update(summary_gen.generate())
             final_tabs.update(kpi_gen.generate())
+            final_tabs.update(inactivity_gen.generate())
             
             log.info(f"Geração de Abas: {len(final_tabs)} abas criadas.")
 
-            log.info("Escrita: Salvando arquivo Excel final...")
+            log.info("Escrita 1/2: Salvando Relatório Mensal (Histórico)...")
             output_file_path = self.data_writer.save_report_to_excel(
                 report_tabs=final_tabs,
                 base_filename="relatorio_presenca_stonelab"
             )
+            
+            db_master_id = getattr(self.config, 'ID_PLANILHA_MESTRA', None)
+            if db_master_id or self.config.MODO_EXECUCAO == 'local':
+                log.info("Escritor 2/2: Atualizando Banco de Dados Mestre (Dashboard)...")
+                
+                if schema.ABA_REPORT_RAW in final_tabs:
+                    self.data_writer.update_master_database(
+                        final_tabs[schema.ABA_REPORT_RAW], 
+                        db_master_id if db_master_id else "", 
+                        schema.ABA_DB_HISTORICO
+                    )
+            else:
+                log.info("Config 'ID_PLANILHA_MESTRA' não encontrada. Pulando atualização do Dashboard.")
             
             log.info("Sucesso: Pipeline concluído.")
             log.info(f"Arquivo final salvo em: {output_file_path}")

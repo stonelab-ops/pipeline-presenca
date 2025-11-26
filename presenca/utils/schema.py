@@ -52,9 +52,20 @@ OUT_COL_ACOES_SEMANA = "Semana"
 OUT_COL_ACOES_FREQ_OBS = "Freq Obs"
 OUT_COL_ACOES_SITUACAO = "Situacao"
 
+OUT_COL_ULTIMA_PRESENCA = "Última Presença"
+OUT_COL_DIAS_AUSENTE = "Dias Ausente"
+OUT_COL_RISCO = "Nível de Risco"
+
 STATUS_ATINGIU = "Atingiu"
 STATUS_NAO_ATINGIU = "Não Atingiu"
 STATUS_JUSTIFICADO = "Semana Justificada"
+
+RISCO_1_AMARELO = "(1) Amarelo (> 15 dias)"
+RISCO_2_LARANJA = "(2) Laranja (> 30 dias)"
+RISCO_3_VERMELHO = "(3) Vermelho (> 45 dias)"
+RISCO_PRE_INATIVIDADE = "(4) Risco Inicial (10-15 dias)"
+RISCO_ATIVO = "Ativo"
+RISCO_JUSTIFICADO = "Justificado"
 
 ACAO_CORRIGIR_NOME = "(1) Corrigir 'nome_entrada' no Cadastro"
 ACAO_NAO_CADASTRADO = "(2) Pessoa Não Cadastrada (Verificar)"
@@ -71,3 +82,10 @@ ABA_PIVOT_PCT = "pct_atingimento_pivot"
 ABA_XML_EXPORT = "export_XMLs"
 ABA_RAW_PRESENCE = "raw_presence_data"
 ABA_IGNORAR = "Pessoas para nao monitorar"
+ABA_INATIVIDADE = "Alerta_Inatividade"
+
+ABA_DB_HISTORICO = "Report_Raw_Historico"
+ABA_DB_INATIVIDADE = "Alerta_Inatividade_Historico"
+
+PASTA_DASHBOARD_LOCAL = "output-dashboard"
+NOME_ARQUIVO_DASHBOARD = "DASHBOARD_SNAPSHOT_ATUAL.xlsx"

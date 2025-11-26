@@ -11,10 +11,7 @@ logging.basicConfig(level=logging.INFO,
 log = logging.getLogger(__name__)
 
 def run_local_pipeline():
-    """
-    Executa o pipeline no modo 'local' 
-    """
-    log.info(" Iniciando Pipeline - MODO: LOCAL ")
+    log.info("Iniciando Pipeline - MODO: LOCAL")
     
     if config.MODO_EXECUCAO != 'local':
         log.error("Erro: MODO_EXECUCAO no config.py não está 'local'.")
@@ -23,9 +20,9 @@ def run_local_pipeline():
     try:
         ano = config.ANO_DO_RELATORIO
         mes = config.MES_DO_RELATORIO
-        log.info(f" Período de Análise (lido do config): {ano}-{mes:02d} ")
+        log.info(f"Período de Análise: {ano}-{mes:02d}")
     except Exception:
-        log.error("Erro: Não foi possível encontrar ANO_DO_RELATORIO ou MES_DO_RELATORIO no config.py.")
+        log.error("Erro: Configuração de ANO ou MES não encontrada.")
         return
 
     try:
@@ -36,10 +33,10 @@ def run_local_pipeline():
         config.DATA_INICIO_GERAL = data_inicio.strftime('%Y-%m-%d')
         config.DATA_FIM_GERAL = data_fim.strftime('%Y-%m-%d')
     except ValueError:
-        log.error(f"Erro: Ano ({ano}) ou Mês ({mes}) inválido. Abortando.")
+        log.error(f"Erro: Data inválida para {ano}-{mes}.")
         return
 
-    log.info(f"Pasta de dados de presença: {config.CAMINHOS['local']['dados_presenca']}")
+    log.info(f"Pasta de dados: {config.CAMINHOS['local']['dados_presenca']}")
 
     data_reader = DataReader(config=config, gspread_client=None)
     data_writer = DataWriter(config=config, gdrive_service=None)
