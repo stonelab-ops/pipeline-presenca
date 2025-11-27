@@ -3,6 +3,7 @@ CADASTRO_FUNCAO = "Qual a sua função no projeto?"
 CADASTRO_COORDENADOR = "Quem é o professor responsável pelo seu projeto?"
 CADASTRO_ID_STONELAB = "id_stonelab"
 CADASTRO_NOME_ENTRADA = "nome_entrada"
+CADASTRO_ATIVO = "Ativo"
 
 IO_COL_ID_RAW = "ID_Stonelab"
 IO_COL_START_RAW = "Quando a data de referência?"
