@@ -1,3 +1,4 @@
+# CONSTANTES DE INPUT (Google Forms / Planilhas) 
 CADASTRO_NOME_COMPLETO = "Qual o seu nome completo?"
 CADASTRO_FUNCAO = "Qual a sua função no projeto?"
 CADASTRO_COORDENADOR = "Quem é o professor responsável pelo seu projeto?"
@@ -20,6 +21,7 @@ JUSTIFICATIVA_MOTIVO_FERIAS = "Férias"
 
 FERIADOS_DATA = "Data"
 
+# CONSTANTES INTERNAS (Nomes de colunas no DataFrame) 
 COL_NAME = "name"
 COL_FUNCTION = "function"
 COL_COORDINATOR = "coordinator"
@@ -37,6 +39,7 @@ COL_IO_END2 = "end_date_2"
 COL_IO_FREQ1 = "freq_1"
 COL_IO_FREQ2 = "freq_2"
 
+# CONSTANTES DE SAÍDA (Excel / Relatórios) 
 OUT_COL_NOME = "Nome"
 OUT_COL_FUNCAO = "Função"
 OUT_COL_COORDENADOR = "Coordenador"
@@ -57,6 +60,13 @@ OUT_COL_ULTIMA_PRESENCA = "Última Presença"
 OUT_COL_DIAS_AUSENTE = "Dias Ausente"
 OUT_COL_RISCO = "Nível de Risco"
 
+# CONSTANTES DA ABA LIMPEZA DE BIOMETRIA 
+OUT_COL_NOME_XML = "Nome no XML (Biometria)"
+OUT_COL_PRIMEIRA_APARICAO = "Primeira Aparição (Neste Mês)"
+OUT_COL_ULTIMA_APARICAO = "Última Aparição (Neste Mês)"
+OUT_COL_TOTAL_REGISTROS = "Total de Registros"
+
+# STATUS E VALORES 
 STATUS_ATINGIU = "Atingiu"
 STATUS_NAO_ATINGIU = "Não Atingiu"
 STATUS_JUSTIFICADO = "Semana Justificada"
@@ -73,6 +83,7 @@ ACAO_NAO_CADASTRADO = "(2) Pessoa Não Cadastrada (Verificar)"
 ACAO_OK_IGNORADO = "OK (Ignorado)"
 ACAO_OK_MATCH_CORRETO = "OK (Match Correto)"
 
+# NOMES DAS ABAS 
 ABA_ACOES_CADASTRO = "Acoes_de_Cadastro"
 ABA_RESUMO_POR_ALUNO = "Resumo_por_Aluno"
 ABA_REPORT_RAW = "report_raw"
@@ -83,10 +94,24 @@ ABA_PIVOT_PCT = "pct_atingimento_pivot"
 ABA_XML_EXPORT = "export_XMLs"
 ABA_RAW_PRESENCE = "raw_presence_data"
 ABA_IGNORAR = "Pessoas para nao monitorar"
-ABA_INATIVIDADE = "Alerta_Inatividade"
+ABA_INATIVIDADE = "Inatividade_Alunos"
+ABA_LIMPEZA_BIOMETRIA = "Inatividade_XML"
 
 ABA_DB_HISTORICO = "Report_Raw_Historico"
 ABA_DB_INATIVIDADE = "Alerta_Inatividade_Historico"
 
+# CAMINHOS E ARQUIVOS 
 PASTA_DASHBOARD_LOCAL = "output-dashboard"
 NOME_ARQUIVO_DASHBOARD = "DASHBOARD_SNAPSHOT_ATUAL.xlsx"
+
+DB_HIST_COL_ID = COL_ID_STONELAB          
+DB_HIST_COL_NOME = OUT_COL_NOME           
+DB_HIST_COL_FUNCAO = OUT_COL_FUNCAO       
+DB_HIST_COL_COORDENADOR = OUT_COL_COORDENADOR 
+DB_HIST_COL_DATE = OUT_COL_SEMANA         
+DB_HIST_COL_FREQ_OBS = OUT_COL_FREQ_OBS   
+DB_HIST_COL_FREQ_ESP = OUT_COL_FREQ_ESP   
+DB_HIST_COL_DIAS_UTEIS = OUT_COL_DIAS_UTEIS 
+DB_HIST_COL_FALT_JUST = OUT_COL_FALTAS_JUST 
+DB_HIST_COL_FERIAS = OUT_COL_DIAS_FERIAS  
+DB_HIST_COL_SITUACAO = OUT_COL_SITUACAO

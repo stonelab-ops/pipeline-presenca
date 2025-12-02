@@ -1,8 +1,11 @@
 import pandas as pd
+import logging
 from typing import Dict, List, Optional
 from .models.tenure import Tenure, FrequencyChange
 from .models.coordinator import Coordinator
 from ..utils import schema
+
+log = logging.getLogger(__name__)
 
 class TenureFactory:
     
@@ -10,6 +13,15 @@ class TenureFactory:
         tenures_dict = {}
         df_cleaned = self._clean_io_df(df)
         
+        if schema.COL_IO_START in df_cleaned.columns and schema.COL_ID_STONELAB in df_cleaned.columns:
+            df_cleaned.sort_values(by=schema.COL_IO_START, ascending=False, inplace=True, na_position='last')
+            
+            original_len = len(df_cleaned)
+            df_cleaned.drop_duplicates(subset=[schema.COL_ID_STONELAB], keep='first', inplace=True)
+            
+            if len(df_cleaned) < original_len:
+                log.info(f"Factory: Deduplicação aplicada. Removidos {original_len - len(df_cleaned)} registros antigos de IO.")
+
         for row in df_cleaned.itertuples():
             sid = str(getattr(row, schema.COL_ID_STONELAB))
             if sid not in tenures_dict:

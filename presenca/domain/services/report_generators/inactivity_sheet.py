@@ -1,62 +1,66 @@
 import pandas as pd
 import numpy as np
 import logging
-import os
 from datetime import date
-from typing import Dict, List, Set, Any
+from typing import Dict, Set, Any, List
 from ....utils import schema
 from ...models.coordinator import Coordinator
+from .inactivity_calculator import InactivityCalculator
 
 log = logging.getLogger(__name__)
 
 class InactivitySheetGenerator:
     
     def __init__(self, processed_data: dict, config: dict):
-        self.registros = processed_data.get('registros_final', pd.DataFrame())
+        self.processed_data = processed_data
         self.cadastro = processed_data.get('cadastro', pd.DataFrame())
         self.tenures = processed_data.get('tenures', {})
         self.justificativas_raw = processed_data.get('justificativas', pd.DataFrame())
         self.config = config
+        self.calculator = InactivityCalculator(processed_data, config)
 
     def generate(self) -> dict:
-        log.info("Gerador Inatividade: Calculando riscos...")
+        log.info("Gerador Inatividade: Iniciando análise...")
         
         try:
             ref_date = pd.to_datetime(self.config.DATA_FIM_GERAL).date()
             start_month = pd.to_datetime(self.config.DATA_INICIO_GERAL).date()
         except Exception:
-            log.error("Gerador Inatividade: Datas de configuração inválidas.")
             return {schema.ABA_INATIVIDADE: pd.DataFrame()}
         
         active_ids = self._get_active_students_ids(start_month, ref_date)
-        
         if not active_ids:
             return {schema.ABA_INATIVIDADE: pd.DataFrame()}
 
         justifications_map = self._prepare_justifications_map()
+        df_risk = self._prepare_and_deduplicate_students(active_ids)
+        df_risk = self.calculator.calculate_last_presence(df_risk, ref_date)
+        df_final = self._classify_and_format(df_risk, justifications_map, ref_date)
+        return {schema.ABA_INATIVIDADE: df_final}
 
-        df_risk = self.cadastro[
+    def _prepare_and_deduplicate_students(self, active_ids: List[str]) -> pd.DataFrame:
+        df = self.cadastro[
             self.cadastro[schema.COL_ID_STONELAB].astype(str).isin(active_ids)
         ].copy()
 
         col_ativo = getattr(schema, 'CADASTRO_ATIVO', 'Ativo')
-        if col_ativo in df_risk.columns:
-            df_risk['ativo_temp'] = pd.to_numeric(df_risk[col_ativo], errors='coerce').fillna(0)
-            df_risk = df_risk[df_risk['ativo_temp'] == 1].copy()
-            df_risk.drop(columns=['ativo_temp'], inplace=True)
-            log.info(f"Filtro de Ativos aplicado. Total alunos analisados: {len(df_risk)}")
-        else:
-            log.warning(f"Coluna '{col_ativo}' não encontrada no cadastro. Filtro ignorado.")
+        if col_ativo in df.columns:
+            df['ativo_temp'] = pd.to_numeric(df[col_ativo], errors='coerce').fillna(0)
+            df = df[df['ativo_temp'] == 1].copy()
+            df.drop(columns=['ativo_temp'], inplace=True)
 
-        df_risk['io_start_date'] = df_risk[schema.COL_ID_STONELAB].astype(str).map(self._get_start_dates_map())
+        df['io_start_date'] = df[schema.COL_ID_STONELAB].astype(str).map(self._get_start_dates_map())
 
-        df_risk = self._calculate_metrics(df_risk, ref_date)
+        df.sort_values(by='io_start_date', ascending=False, inplace=True, na_position='last')
+
+        col_nome = schema.COL_NAME if schema.COL_NAME in df.columns else 'Nome'
         
-        df_final = self._classify_and_format(df_risk, justifications_map, ref_date)
-        
-        return {schema.ABA_INATIVIDADE: df_final}
-    def _normalize_string(self, series: pd.Series) -> pd.Series:
-        return series.astype(str).str.upper().str.strip().str.replace(r'\.0$', '', regex=True)
+        if col_nome in df.columns:
+            df['temp_dedup_name'] = df[col_nome].astype(str).str.upper().str.strip()
+            df.drop_duplicates(subset=['temp_dedup_name'], keep='first', inplace=True)
+            df.drop(columns=['temp_dedup_name'], inplace=True)
+            
+        return df
 
     def _prepare_justifications_map(self) -> Dict[str, Set[date]]:
         if self.justificativas_raw.empty:
@@ -127,107 +131,8 @@ class InactivitySheetGenerator:
                 if self._get_freq_value(t) >= 1:
                     valid_starts.append(t.beginning)
             if valid_starts:
-                start_map[str(sid)] = min(valid_starts)
+                start_map[str(sid)] = max(valid_starts)
         return start_map
-    def _try_load_history(self) -> pd.DataFrame:
-        try:
-            path = os.path.join("output", "output-dashboard", "STONE_LAB_DATABASE_HISTORICO.csv")
-            if os.path.exists(path):
-                df = pd.read_csv(path)
-                cols_lower = {c.lower(): c for c in df.columns}
-                if 'semana' in cols_lower and schema.OUT_COL_ULTIMA_PRESENCA not in df.columns:
-                    df.rename(columns={cols_lower['semana']: schema.OUT_COL_ULTIMA_PRESENCA}, inplace=True)
-                if 'nome' in cols_lower and schema.COL_ID_STONELAB not in df.columns:
-                    df.rename(columns={cols_lower['nome']: 'temp_name_id'}, inplace=True)
-                log.info(f"Inatividade: Histórico lido ({len(df)} linhas).")
-                return df
-            else:
-                log.info("Inatividade: Nenhum histórico local encontrado.")
-        except Exception as e:
-            log.warning(f"Inatividade: Erro ao ler histórico: {e}")
-        return pd.DataFrame()
-    def _calculate_metrics(self, df: pd.DataFrame, ref_date: date) -> pd.DataFrame:
-        if not self.registros.empty:
-            current_last_dates = self.registros.groupby(schema.COL_ID_STONELAB)[schema.COL_XML_DATE].max()
-            current_last_dates.index = current_last_dates.index.astype(str)
-        else:
-            current_last_dates = pd.Series(dtype='object')
-
-        if self.config.MODO_EXECUCAO == 'local':
-            history_df = self._try_load_history()
-            if not history_df.empty:
-                col_hist_key = schema.COL_ID_STONELAB
-                col_hist_date = schema.OUT_COL_ULTIMA_PRESENCA
-                
-                if col_hist_key not in history_df.columns:
-                    if 'id_stonelab' in history_df.columns: col_hist_key = 'id_stonelab'
-                    elif 'temp_name_id' in history_df.columns: col_hist_key = 'temp_name_id'
-                
-                possible_dates = [schema.COL_XML_DATE, 'Date', 'Última Presença', 'Semana', 'date']
-                found_date = next((c for c in possible_dates if c in history_df.columns), None)
-                if found_date: col_hist_date = found_date
-
-                if col_hist_key in history_df.columns and col_hist_date in history_df.columns:
-                    history_df[col_hist_date] = pd.to_datetime(history_df[col_hist_date], errors='coerce')
-                    
-                    ref_ts = pd.Timestamp(ref_date)
-                    history_df = history_df[history_df[col_hist_date] <= ref_ts].copy()
-
-                    history_df['key_norm'] = self._normalize_string(history_df[col_hist_key])
-                    hist_by_key = history_df.groupby('key_norm')[col_hist_date].max()
-                    
-                    df['temp_id_norm'] = self._normalize_string(df[schema.COL_ID_STONELAB])
-                    col_nome = schema.COL_NAME if schema.COL_NAME in df.columns else 'Nome'
-                    has_name = col_nome in df.columns
-                    if has_name:
-                        df['temp_name_norm'] = self._normalize_string(df[col_nome])
-
-                    def get_best_date(row):
-                        current_date = pd.NaT
-                        sid = str(row[schema.COL_ID_STONELAB])
-                        if sid in current_last_dates.index:
-                            current_date = current_last_dates[sid]
-                        if pd.notna(current_date): return current_date
-
-                        hist_date = pd.NaT
-                        if row['temp_id_norm'] in hist_by_key.index:
-                            hist_date = hist_by_key[row['temp_id_norm']]
-                        if pd.isna(hist_date) and has_name and row['temp_name_norm'] in hist_by_key.index:
-                            hist_date = hist_by_key[row['temp_name_norm']]
-                        return hist_date
-
-                    df[schema.OUT_COL_ULTIMA_PRESENCA] = df.apply(get_best_date, axis=1)
-                    df.drop(columns=['temp_id_norm'], inplace=True)
-                    if has_name: df.drop(columns=['temp_name_norm'], inplace=True)
-                    log.info("Inatividade: Cruzamento Híbrido com histórico concluído.")
-
-        if schema.OUT_COL_ULTIMA_PRESENCA not in df.columns:
-            df['sid_str'] = df[schema.COL_ID_STONELAB].astype(str)
-            df = df.merge(current_last_dates.rename(schema.OUT_COL_ULTIMA_PRESENCA), 
-                          left_on='sid_str', right_index=True, how='left')
-        
-        return self._finalize_days_calculation(df, ref_date)
-    def _finalize_days_calculation(self, df: pd.DataFrame, ref_date: date) -> pd.DataFrame:
-        if schema.OUT_COL_ULTIMA_PRESENCA not in df.columns:
-            df[schema.OUT_COL_ULTIMA_PRESENCA] = pd.NaT
-
-        def calculate_days(row):
-            last_pres = row[schema.OUT_COL_ULTIMA_PRESENCA]
-            if pd.isna(last_pres):
-                if 'io_start_date' in row and pd.notna(row['io_start_date']):
-                    start_date_io = row['io_start_date']
-                    if isinstance(start_date_io, pd.Timestamp): start_date_io = start_date_io.date()
-                    if start_date_io > ref_date: return 0
-                    days_since_start = (ref_date - start_date_io).days
-                    return days_since_start if days_since_start >= 0 else 0
-                return 999
-            if isinstance(last_pres, pd.Timestamp): last_pres = last_pres.date()
-            elif isinstance(last_pres, str): last_pres = pd.to_datetime(last_pres).date()
-            return (ref_date - last_pres).days
-
-        df[schema.OUT_COL_DIAS_AUSENTE] = df.apply(calculate_days, axis=1)
-        if 'io_start_date' in df.columns: df.drop(columns=['io_start_date'], inplace=True)
-        return df
 
     def _classify_and_format(self, df: pd.DataFrame, just_map: Dict[str, Set[date]], 
                              ref_date: date) -> pd.DataFrame:
@@ -269,4 +174,8 @@ class InactivitySheetGenerator:
         available_cols = [c for c in final_columns if c in df_filtered.columns]
         df_final = df_filtered[available_cols].copy()
         df_final[schema.OUT_COL_SEMANA] = ref_date
+        
+        if 'io_start_date' in df_final.columns:
+             df_final.drop(columns=['io_start_date'], inplace=True)
+
         return df_final.sort_values(by=schema.OUT_COL_DIAS_AUSENTE, ascending=False)
