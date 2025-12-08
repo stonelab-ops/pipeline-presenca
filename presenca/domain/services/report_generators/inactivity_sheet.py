@@ -96,7 +96,7 @@ class InactivitySheetGenerator:
         return just_map
 
     def _get_freq_value(self, tenure_obj: Any) -> int:
-        candidates = ['frequency', 'frequency_1', 'freq', 'freq_1', 'expected_frequency', 'original_expected_frequency']
+        candidates = ['frequency','frequency_1','freq','freq_1','expected_frequency','original_expected_frequency']
         for attr in candidates:
             if hasattr(tenure_obj, attr):
                 val = getattr(tenure_obj, attr)

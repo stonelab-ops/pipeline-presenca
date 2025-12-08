@@ -11,6 +11,7 @@ from .domain.services.report_generators.action_sheets import ActionSheetGenerato
 from .domain.services.report_generators.summary_sheet import SummarySheetGenerator
 from .domain.services.report_generators.kpi_sheets import KpiSheetGenerator
 from .domain.services.report_generators.inactivity_sheet import InactivitySheetGenerator
+from .domain.services.report_generators.biometry_cleanup_sheet import BiometryCleanupSheetGenerator
 import pandas as pd
 import calendar
 from datetime import datetime
@@ -57,13 +58,20 @@ class PresencePipeline:
             log.info("Construção: Gerando relatório base semanal...")
             
             df_cadastro_completo = processed_data['cadastro']
-            if not processed_data['registros_final'].empty:
-                ids_com_presenca = processed_data['registros_final']['id_stonelab'].unique()
+            
+            ids_com_contrato = list(tenures.keys())
+            
+            if ids_com_contrato:
+                df_cadastro_completo[schema.COL_ID_STONELAB] = df_cadastro_completo[schema.COL_ID_STONELAB].astype(str).str.strip()
+                ids_com_contrato = [str(i).strip() for i in ids_com_contrato]
+                
                 df_alunos_ativos_para_relatorio = df_cadastro_completo[
-                    df_cadastro_completo['id_stonelab'].isin(ids_com_presenca)
+                    df_cadastro_completo[schema.COL_ID_STONELAB].isin(ids_com_contrato)
                 ].copy()
+                
+                log.info(f"Pipeline: Selecionados {len(df_alunos_ativos_para_relatorio)} alunos com contrato ativo para o relatório.")
             else:
-                log.warning("Nenhum registro final encontrado. O relatório base estará vazio.")
+                log.warning("Nenhum contrato (Tenure) encontrado. O relatório base estará vazio.")
                 df_alunos_ativos_para_relatorio = pd.DataFrame(columns=df_cadastro_completo.columns)
             
             base_builder = BaseReportBuilder(self.config)
@@ -92,12 +100,14 @@ class PresencePipeline:
             summary_gen = SummarySheetGenerator(report_with_kpis, self.config)
             kpi_gen = KpiSheetGenerator(report_with_kpis)
             inactivity_gen = InactivitySheetGenerator(processed_data, self.config)
+            cleanup_gen = BiometryCleanupSheetGenerator(processed_data, self.config)
 
             final_tabs = {}
             final_tabs.update(action_gen.generate())
             final_tabs.update(summary_gen.generate())
             final_tabs.update(kpi_gen.generate())
             final_tabs.update(inactivity_gen.generate())
+            final_tabs.update(cleanup_gen.generate())
             
             log.info(f"Geração de Abas: {len(final_tabs)} abas criadas.")
 

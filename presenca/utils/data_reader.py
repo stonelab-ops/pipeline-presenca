@@ -26,7 +26,7 @@ class DataReader:
 
     def _load_local_sources(self) -> dict:
         test_data_path = self.config.CAMINHOS['local']['test_data']
-        presenca_path = self.config.CAMINHOS['local']['dados_presenca']
+        presenca_path = self.config.CAMINHOS['local'].get('dados_presenca', 'raw_data_local')
 
         return {
             "cadastro": self._read_sheet_local(
@@ -55,8 +55,6 @@ class DataReader:
         return pd.read_csv(full_path)
 
     def _load_all_xmls(self, folder_path: str) -> pd.DataFrame:
-        log.info(f"Leitor de Dados: Lendo arquivos XML da pasta '{folder_path}'...")
-
         if not os.path.exists(folder_path):
             log.warning(f"Leitor de Dados: A pasta '{folder_path}' não foi encontrada.")
             return pd.DataFrame()
@@ -65,22 +63,23 @@ class DataReader:
             ano = self.config.ANO_DO_RELATORIO
             mes = self.config.MES_DO_RELATORIO
             target_pattern = f"{ano:04d}-{mes:02d}"
-            log.info(f"Leitor de Dados: Procurando por arquivos XML para o período: {target_pattern}")
+            log.info(
+                f"Leitor de Dados: Procurando arquivos contendo '{target_pattern}' em '{folder_path}'...")
         except AttributeError:
             log.error("Leitor de Dados: ANO_DO_RELATORIO ou MES_DO_RELATORIO não definidos.")
             return pd.DataFrame()
 
-        all_files = os.listdir(folder_path)
         files_to_load = []
-        for f_name in all_files:
-            if f_name.endswith('.xml') and target_pattern in f_name:
-                files_to_load.append(os.path.join(folder_path, f_name))
+        for root, dirs, files in os.walk(folder_path):
+            for f_name in files:
+                if f_name.endswith('.xml') and target_pattern in f_name:
+                    files_to_load.append(os.path.join(root, f_name))
         
         if not files_to_load:
-            log.warning(f"Leitor de Dados: Nenhum arquivo XML encontrado para o período '{target_pattern}' na pasta '{folder_path}'.")
+            log.warning(f"Leitor de Dados: Nenhum XML com padrão '{target_pattern}' encontrado.")
             return pd.DataFrame()
 
-        log.info(f"Leitor de Dados: Encontrados {len(files_to_load)} arquivos XML para {target_pattern}.")
+        log.info(f"Leitor de Dados: Encontrados {len(files_to_load)} arquivos XML válidos.")
         df_list = [self._extract_from_xml(f) for f in files_to_load]
         
         if not df_list:
@@ -101,7 +100,8 @@ class DataReader:
                  [c.text for c in r.findall(".//ss:Data", ns)]), -1
             )
             if header_row_idx == -1:
-                log.warning(f"Leitor de Dados: Cabeçalho 'Nome' não encontrado em {file_path}. Pulando.")
+                log.warning(
+                    f"Leitor de Dados: Cabeçalho 'Nome' não encontrado em {os.path.basename(file_path)}. Pulando.")
                 return pd.DataFrame()
             
             header = [c.text for c in rows[header_row_idx].findall(".//ss:Data", ns)]
@@ -109,7 +109,7 @@ class DataReader:
                 nome_idx = header.index('Nome')
                 horario_idx = header.index('Horário')
             except ValueError:
-                log.warning(f"Leitor de Dados: Colunas 'Nome' ou 'Horário' não encontradas em {file_path}. Pulando.")
+                log.warning(f"Leitor de Dados: Colunas obrigatórias ausentes em {os.path.basename(file_path)}. Pulando.")
                 return pd.DataFrame()
             
             for row in rows[header_row_idx + 1:]:
@@ -120,7 +120,7 @@ class DataReader:
                         data.append({'Name': nome.strip(), 'Datetime': horario})
             return pd.DataFrame(data)
         except ET.ParseError:
-            log.error(f"Leitor de Dados: Erro ao processar XML (arquivo mal formatado): {file_path}")
+            log.error(f"Leitor de Dados: XML corrompido: {file_path}")
             return pd.DataFrame()
     
     def _load_colab_sources(self) -> dict:
@@ -132,7 +132,7 @@ class DataReader:
             log.warning("Leitor de Dados: ANO_DO_RELATORIO não definido, usando ano atual para feriados.")
             ano_feriado_str = str(datetime.now().year)
 
-        presenca_path = self.config.CAMINHOS['colab']['dados_presenca']
+        presenca_path = self.config.CAMINHOS['colab'].get('dados_presenca', 'raw_data')
         
         return {
             "cadastro": self._read_sheet_online(

@@ -46,9 +46,17 @@ class KpiSheetGenerator:
         report_output = self.report_kpi.copy()
         
         if schema.COL_COORDINATOR in report_output.columns:
-            report_output[schema.COL_COORDINATOR] = report_output[schema.COL_COORDINATOR].apply(
-                lambda x: x.name if isinstance(x, Coordinator) else str(x)
-            )
+            def clean_coord_name(x):
+                if hasattr(x, 'name'): 
+                    return x.name
+                s = str(x)
+                if "Coordinator(name=" in s:
+                    return s.replace(
+                        "Coordinator(name='", "").replace("')", "").replace(
+                            'Coordinator(name="', '').replace('")', '')
+                return s
+
+            report_output[schema.COL_COORDINATOR] = report_output[schema.COL_COORDINATOR].apply(clean_coord_name)
 
         column_map = {
             schema.COL_ID_STONELAB: schema.COL_ID_STONELAB,
@@ -95,7 +103,7 @@ class KpiSheetGenerator:
         )
         
         df['coordinator_name'] = df[schema.COL_COORDINATOR].apply(
-            lambda x: x.name if isinstance(x, Coordinator) else str(x)
+            lambda x: x.name if hasattr(x, 'name') else str(x).replace("Coordinator(name='", "").replace("')", "")
         )
         
         gpb = df.groupby(by=['coordinator_name', schema.COL_DATE]).agg(
