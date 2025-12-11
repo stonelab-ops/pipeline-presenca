@@ -7,7 +7,7 @@ from ...utils import schema
 
 log = logging.getLogger(__name__)
 
-class DataProcessingService:
+class AttendanceTransformer:
     def __init__(self, data_frames: dict, config: dict):
         self.data = data_frames
         self.config = config

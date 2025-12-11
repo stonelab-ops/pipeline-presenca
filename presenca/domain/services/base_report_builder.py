@@ -1,51 +1,79 @@
 import pandas as pd
-from typing import Dict, List
+import logging
+from datetime import timedelta, date
+from ...utils import schema
+
+log = logging.getLogger(__name__)
 
 class BaseReportBuilder:
-    """
-    Constrói a estrutura base (scaffold) do relatório semanal.
-    """
+    
     def __init__(self, config: object):
         self.config = config
 
-    def build(
-        self, active_students: pd.DataFrame, tenures: Dict
-    ) -> pd.DataFrame:
-        """
-        Gera o DataFrame base a partir dos alunos ativos e suas jornadas.
-        """
-        report_weeks = self._get_report_weeks_range()
+    def build(self, active_students: pd.DataFrame, tenures: dict) -> pd.DataFrame:
+        if active_students.empty:
+            log.warning("BaseBuilder: Recebi lista de alunos vazia.")
+            return pd.DataFrame()
+
+        try:
+            report_start = pd.to_datetime(self.config.DATA_INICIO_GERAL).date()
+            report_end = pd.to_datetime(self.config.DATA_FIM_GERAL).date()
+        except AttributeError:
+            log.error("BaseBuilder: Datas de início/fim não configuradas.")
+            return pd.DataFrame()
+
+        weeks = []
         
-        all_rows = []
-        for student in active_students.itertuples(index=False):
-            student_rows = self._generate_rows_for_student(
-                student, report_weeks, tenures
-            )
-            all_rows.extend(student_rows)
+        days_ahead = (0 - report_start.weekday()) % 7 
+        if days_ahead == 0:
+            current_monday = report_start
+        else:
+            current_monday = report_start + timedelta(days=days_ahead)
 
-        if not all_rows:
-            return pd.DataFrame(columns=['id_stonelab', 'date'])
-        return pd.DataFrame(all_rows)
+        while current_monday <= report_end:
+            weeks.append(current_monday)
+            current_monday += timedelta(days=7)
 
-    def _get_report_weeks_range(self) -> pd.DatetimeIndex:
-        """Retorna o range de datas (início de semana) para o relatório."""
-        return pd.date_range(
-            start=self.config.DATA_INICIO_GERAL,
-            end=self.config.DATA_FIM_GERAL,
-            freq='W-MON'
-        ).date
+        rows = []
+        
+        if schema.COL_ID_STONELAB in active_students.columns:
+            active_students[schema.COL_ID_STONELAB] = active_students[schema.COL_ID_STONELAB].astype(str).str.strip()
 
-    def _generate_rows_for_student(
-        self, student: object, weeks: pd.DatetimeIndex, tenures: Dict
-    ) -> List[Dict]:
-        """Cria as linhas de relatório para um único aluno."""
-        student_id = str(student.id_stonelab)
-        student_rows = []
-        if student_id in tenures:
+        for student in active_students.itertuples():
+            sid = str(getattr(student, schema.COL_ID_STONELAB)).strip()
+            
+            student_tenures = tenures.get(sid, [])
+            
+            if not student_tenures:
+                continue
+
             for week_date in weeks:
-                if any(t.active_at_date(week_date) for t in tenures[student_id]):
-                    student_rows.append({
-                        'id_stonelab': student.id_stonelab,
-                        'date': week_date
-                    })
-        return student_rows
+                freq_esperada = 0
+                is_active_this_week = False
+                
+                for tenure in student_tenures:
+                    t_start = tenure.beginning
+                    t_end = tenure.end if tenure.end else date.max
+                    
+                    if t_start <= week_date <= t_end:
+                        freq_esperada = tenure.get_expected_frequency(week_date)
+                        
+                        if freq_esperada > 0:
+                            is_active_this_week = True
+                            break
+                
+                if is_active_this_week:
+                    row = {
+                        schema.COL_ID_STONELAB: sid,
+                        schema.COL_NAME: getattr(student, schema.COL_NAME, ""),
+                        schema.COL_FUNCTION: getattr(student, schema.COL_FUNCTION, ""),
+                        schema.COL_COORDINATOR: getattr(student, schema.COL_COORDINATOR, ""),
+                        schema.COL_DATE: week_date,
+                        "expected_frequency": int(freq_esperada)
+                    }
+                    rows.append(row)
+            
+        if not rows:
+            return pd.DataFrame()
+
+        return pd.DataFrame(rows)

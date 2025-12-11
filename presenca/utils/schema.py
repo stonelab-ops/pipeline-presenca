@@ -1,10 +1,8 @@
-# CONSTANTES DE INPUT (Google Forms / Planilhas) 
 CADASTRO_NOME_COMPLETO = "Qual o seu nome completo?"
 CADASTRO_FUNCAO = "Qual a sua função no projeto?"
 CADASTRO_COORDENADOR = "Quem é o professor responsável pelo seu projeto?"
 CADASTRO_ID_STONELAB = "id_stonelab"
 CADASTRO_NOME_ENTRADA = "nome_entrada"
-CADASTRO_ATIVO = "Ativo"
 
 IO_COL_ID_RAW = "ID_Stonelab"
 IO_COL_START_RAW = "Quando a data de referência?"
@@ -21,7 +19,6 @@ JUSTIFICATIVA_MOTIVO_FERIAS = "Férias"
 
 FERIADOS_DATA = "Data"
 
-# CONSTANTES INTERNAS (Nomes de colunas no DataFrame) 
 COL_NAME = "name"
 COL_FUNCTION = "function"
 COL_COORDINATOR = "coordinator"
@@ -39,7 +36,6 @@ COL_IO_END2 = "end_date_2"
 COL_IO_FREQ1 = "freq_1"
 COL_IO_FREQ2 = "freq_2"
 
-# CONSTANTES DE SAÍDA (Excel / Relatórios) 
 OUT_COL_NOME = "Nome"
 OUT_COL_FUNCAO = "Função"
 OUT_COL_COORDENADOR = "Coordenador"
@@ -60,30 +56,23 @@ OUT_COL_ULTIMA_PRESENCA = "Última Presença"
 OUT_COL_DIAS_AUSENTE = "Dias Ausente"
 OUT_COL_RISCO = "Nível de Risco"
 
-# CONSTANTES DA ABA LIMPEZA DE BIOMETRIA 
-OUT_COL_NOME_XML = "Nome no XML (Biometria)"
-OUT_COL_PRIMEIRA_APARICAO = "Primeira Aparição (Neste Mês)"
-OUT_COL_ULTIMA_APARICAO = "Última Aparição (Neste Mês)"
-OUT_COL_TOTAL_REGISTROS = "Total de Registros"
+RISCO_3_VERMELHO = "(3) Vermelho (> 45 dias)"
+RISCO_2_LARANJA = "(2) Laranja (> 30 dias)"
+RISCO_1_AMARELO = "(1) Amarelo (> 15 dias)"
+RISCO_PRE_INATIVIDADE = "(4) Risco Inicial (10-15 dias)"
 
-# STATUS E VALORES 
+RISCO_ATIVO = "Ativo"
+RISCO_JUSTIFICADO = "Justificado"
+
 STATUS_ATINGIU = "Atingiu"
 STATUS_NAO_ATINGIU = "Não Atingiu"
 STATUS_JUSTIFICADO = "Semana Justificada"
-
-RISCO_1_AMARELO = "(1) Amarelo (> 15 dias)"
-RISCO_2_LARANJA = "(2) Laranja (> 30 dias)"
-RISCO_3_VERMELHO = "(3) Vermelho (> 45 dias)"
-RISCO_PRE_INATIVIDADE = "(4) Risco Inicial (10-15 dias)"
-RISCO_ATIVO = "Ativo"
-RISCO_JUSTIFICADO = "Justificado"
 
 ACAO_CORRIGIR_NOME = "(1) Corrigir 'nome_entrada' no Cadastro"
 ACAO_NAO_CADASTRADO = "(2) Pessoa Não Cadastrada (Verificar)"
 ACAO_OK_IGNORADO = "OK (Ignorado)"
 ACAO_OK_MATCH_CORRETO = "OK (Match Correto)"
 
-# NOMES DAS ABAS 
 ABA_ACOES_CADASTRO = "Acoes_de_Cadastro"
 ABA_RESUMO_POR_ALUNO = "Resumo_por_Aluno"
 ABA_REPORT_RAW = "report_raw"
@@ -95,23 +84,41 @@ ABA_XML_EXPORT = "export_XMLs"
 ABA_RAW_PRESENCE = "raw_presence_data"
 ABA_IGNORAR = "Pessoas para nao monitorar"
 ABA_INATIVIDADE = "Inatividade_Alunos"
-ABA_LIMPEZA_BIOMETRIA = "Inatividade_XML"
 
 ABA_DB_HISTORICO = "Report_Raw_Historico"
 ABA_DB_INATIVIDADE = "Alerta_Inatividade_Historico"
 
-# CAMINHOS E ARQUIVOS 
 PASTA_DASHBOARD_LOCAL = "output-dashboard"
 NOME_ARQUIVO_DASHBOARD = "DASHBOARD_SNAPSHOT_ATUAL.xlsx"
 
-DB_HIST_COL_ID = COL_ID_STONELAB          
-DB_HIST_COL_NOME = OUT_COL_NOME           
-DB_HIST_COL_FUNCAO = OUT_COL_FUNCAO       
-DB_HIST_COL_COORDENADOR = OUT_COL_COORDENADOR 
-DB_HIST_COL_DATE = OUT_COL_SEMANA         
-DB_HIST_COL_FREQ_OBS = OUT_COL_FREQ_OBS   
-DB_HIST_COL_FREQ_ESP = OUT_COL_FREQ_ESP   
-DB_HIST_COL_DIAS_UTEIS = OUT_COL_DIAS_UTEIS 
-DB_HIST_COL_FALT_JUST = OUT_COL_FALTAS_JUST 
-DB_HIST_COL_FERIAS = OUT_COL_DIAS_FERIAS  
+ABA_LIMPEZA_BIOMETRIA = "Limpeza_Biometria_Inativos"
+
+OUT_COL_NOME_LIMPEZA = "Nome"
+OUT_COL_ULTIMA_PRESENCA_LIMPEZA = "Última Presença"
+OUT_COL_DIAS_INATIVO_LIMPEZA = "Dias Ausente"
+
+DB_HIST_COL_ID = COL_ID_STONELAB
+DB_HIST_COL_NOME = OUT_COL_NOME
+DB_HIST_COL_FUNCAO = OUT_COL_FUNCAO
+DB_HIST_COL_COORDENADOR = OUT_COL_COORDENADOR
+DB_HIST_COL_DATE = OUT_COL_SEMANA
+DB_HIST_COL_FREQ_OBS = OUT_COL_FREQ_OBS
+DB_HIST_COL_FREQ_ESP = OUT_COL_FREQ_ESP
+DB_HIST_COL_DIAS_UTEIS = OUT_COL_DIAS_UTEIS
+DB_HIST_COL_FALT_JUST = OUT_COL_FALTAS_JUST
+DB_HIST_COL_FERIAS = OUT_COL_DIAS_FERIAS
 DB_HIST_COL_SITUACAO = OUT_COL_SITUACAO
+
+COLOR_RED_BG = '#FFC7CE'
+COLOR_RED_FONT = '#9C0006'
+COLOR_YELLOW_BG = '#FFEB9C'
+COLOR_YELLOW_FONT = '#9C6500'
+COLOR_ORANGE_BG = '#FCD5B4'
+COLOR_ORANGE_FONT = '#9C6500'
+
+
+FORMAT_RULES_RISCO = {
+    "Vermelho": {'bg_color': COLOR_RED_BG,    'font_color': COLOR_RED_FONT},
+    "Laranja":  {'bg_color': COLOR_ORANGE_BG, 'font_color': COLOR_ORANGE_FONT},
+    "Amarelo":  {'bg_color': COLOR_YELLOW_BG, 'font_color': COLOR_YELLOW_FONT}
+}
