@@ -70,16 +70,14 @@ class DataReader:
             log.error("Leitor de Dados: ANO_DO_RELATORIO ou MES_DO_RELATORIO não definidos.")
             return pd.DataFrame()
 
-        all_xml_files = [f for f in os.listdir(folder_path) if f.endswith('.xml')]
-        
+        all_files = os.listdir(folder_path)
         files_to_load = []
-        for f_name in all_xml_files:
-            if target_pattern in f_name:
+        for f_name in all_files:
+            if f_name.endswith('.xml') and target_pattern in f_name:
                 files_to_load.append(os.path.join(folder_path, f_name))
         
         if not files_to_load:
             log.warning(f"Leitor de Dados: Nenhum arquivo XML encontrado para o período '{target_pattern}' na pasta '{folder_path}'.")
-            log.warning("Leitor de Dados: O DataFrame 'registros_brutos' estará vazio.")
             return pd.DataFrame()
 
         log.info(f"Leitor de Dados: Encontrados {len(files_to_load)} arquivos XML para {target_pattern}.")
@@ -157,7 +155,7 @@ class DataReader:
 
     def _read_sheet_online(self, s_name: str, a_name: str) -> pd.DataFrame:
         if not self.gc:
-            log.error("Leitor de Dados: Cliente GSpread (gspread_client) não foi fornecido/autenticado.")
+            log.error("Leitor de Dados: Cliente GSpread não inicializado.")
             raise ValueError("gspread_client não inicializado.")
             
         log.info(f"Leitor de Dados: Lendo planilha online '{s_name}' | Aba: '{a_name}'...")

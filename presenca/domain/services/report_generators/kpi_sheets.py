@@ -51,6 +51,7 @@ class KpiSheetGenerator:
             )
 
         column_map = {
+            schema.COL_ID_STONELAB: schema.COL_ID_STONELAB,
             schema.COL_NAME: schema.OUT_COL_NOME,
             schema.COL_FUNCTION: schema.OUT_COL_FUNCAO,
             schema.COL_COORDINATOR: schema.OUT_COL_COORDENADOR,
