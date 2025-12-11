@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import date # Mantenha esta importação
 
 from presenca.utils.data_reader import DataReader
-from presenca.domain.services.data_processing import DataProcessingService
+from presenca.domain.services.AttendanceTransformer import DataProcessingService
 from tests import config_test
 from presenca.domain.services.base_report_builder import BaseReportBuilder
 from presenca.domain.services.weekly_report_enhancer import WeeklyReportEnhancer

@@ -3,7 +3,7 @@ from typing import Dict, Any
 from .utils.data_reader import DataReader
 from .utils.data_writer import DataWriter
 from .domain.factory import TenureFactory
-from .domain.services.data_processing import DataProcessingService
+from .domain.services.AttendanceTransformer import AttendanceTransformer
 from .domain.services.base_report_builder import BaseReportBuilder
 from .domain.services.weekly_report_enhancer import WeeklyReportEnhancer
 from .domain.services.kpi_calculator_padrao import KpiCalculatorPadrao
@@ -51,7 +51,7 @@ class PresencePipeline:
             log.info("Processamento: Limpando e preparando dados brutos...")
             tenures = self.tenure_factory.create_tenures_from_df(all_data['io_alunos'])
             
-            processor_service = DataProcessingService(all_data, self.config)
+            processor_service = AttendanceTransformer(all_data, self.config)
             processed_data = processor_service.run()
             processed_data['justificativas'] = all_data['justificativas']
 

@@ -117,7 +117,6 @@ COLOR_ORANGE_BG = '#FCD5B4'
 COLOR_ORANGE_FONT = '#9C6500'
 
 
-
 FORMAT_RULES_RISCO = {
     "Vermelho": {'bg_color': COLOR_RED_BG,    'font_color': COLOR_RED_FONT},
     "Laranja":  {'bg_color': COLOR_ORANGE_BG, 'font_color': COLOR_ORANGE_FONT},
