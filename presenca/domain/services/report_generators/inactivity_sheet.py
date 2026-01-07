@@ -3,7 +3,7 @@ import numpy as np
 import logging
 from datetime import date
 from typing import Dict, Set, Any, List
-from ....utils import schema
+import schema
 from ...models.coordinator import Coordinator
 from .inactivity_calculator import InactivityCalculator
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import logging
-from ...utils import schema
+import schema
 from .kpi_calculator_base import KpiCalculatorBase
 
 log = logging.getLogger(__name__)

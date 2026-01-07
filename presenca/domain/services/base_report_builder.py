@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 from datetime import timedelta, date
-from ...utils import schema
+import schema
 
 log = logging.getLogger(__name__)
 

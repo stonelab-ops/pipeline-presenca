@@ -1,22 +1,27 @@
 import logging
-import config  
 import calendar
+import sys
 from datetime import datetime
+import schema
 from presenca.pipeline import PresencePipeline
 from presenca.utils.data_reader import DataReader
 from presenca.utils.data_writer import DataWriter
+
+try:
+    from configs import settings_local as config
+    print(f"Modo LOCAL detectado.")
+except ImportError:
+    from configs import settings_colab as config
+    print(f"Modo COLAB/NUVEM detectado.")
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 log = logging.getLogger(__name__)
 
-def run_local_pipeline():
-    log.info("Iniciando Pipeline - MODO: LOCAL")
+def run_pipeline():
+    mode = config.MODO_EXECUCAO
+    log.info(f"Iniciando Pipeline - MODO: {mode.upper()}")
     
-    if config.MODO_EXECUCAO != 'local':
-        log.error("Erro: MODO_EXECUCAO no config.py não está 'local'.")
-        return
-
     try:
         ano = config.ANO_DO_RELATORIO
         mes = config.MES_DO_RELATORIO
@@ -36,7 +41,9 @@ def run_local_pipeline():
         log.error(f"Erro: Data inválida para {ano}-{mes}.")
         return
 
-    log.info(f"Pasta de dados: {config.CAMINHOS['local']['dados_presenca']}")
+    path_key = 'local' if mode == 'local' else 'colab'
+    path_dados = config.CAMINHOS[path_key]['dados_presenca']
+    log.info(f"Lendo dados de: {path_dados}")
 
     data_reader = DataReader(config=config, gspread_client=None)
     data_writer = DataWriter(config=config, gdrive_service=None)
@@ -50,4 +57,4 @@ def run_local_pipeline():
     pipeline.run()
 
 if __name__ == "__main__":
-    run_local_pipeline()
+    run_pipeline()

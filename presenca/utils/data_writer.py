@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any, Optional
-from . import schema
+import schema
 from googleapiclient.http import MediaFileUpload
 import gspread
 

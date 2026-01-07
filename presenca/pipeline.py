@@ -15,7 +15,7 @@ from .domain.services.report_generators.biometry_cleanup_sheet import BiometryCl
 import pandas as pd
 import calendar
 from datetime import datetime
-from .utils import schema
+import schema
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from ...utils import schema
+import schema
 from ..models.tenure import Tenure
 
 class WeeklyReportEnhancer:

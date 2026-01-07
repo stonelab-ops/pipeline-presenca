@@ -3,7 +3,7 @@ import logging
 from typing import Dict, List, Optional
 from .models.tenure import Tenure, FrequencyChange
 from .models.coordinator import Coordinator
-from ..utils import schema
+import schema
 
 log = logging.getLogger(__name__)
 

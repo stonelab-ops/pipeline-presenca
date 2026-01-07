@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import gspread
 import logging
-from . import schema
+import schema
 
 log = logging.getLogger(__name__)
 
@@ -30,19 +30,19 @@ class DataReader:
 
         return {
             "cadastro": self._read_sheet_local(
-                os.path.join(test_data_path, self.config.ARQUIVO_CADASTRO_LOCAL)
+                os.path.join(test_data_path, schema.ARQUIVO_CADASTRO_LOCAL)
             ),
             "io_alunos": self._read_sheet_local(
-                os.path.join(test_data_path, self.config.ARQUIVO_IO_LOCAL)
+                os.path.join(test_data_path, schema.ARQUIVO_IO_LOCAL)
             ),
             "ignorar": self._read_sheet_local(
-                os.path.join(test_data_path, self.config.ARQUIVO_IGNORAR_LOCAL)
+                os.path.join(test_data_path, schema.ARQUIVO_IGNORAR_LOCAL)
             ),
             "feriados": self._read_sheet_local(
-                os.path.join(test_data_path, self.config.ARQUIVO_FERIADOS_LOCAL)
+                os.path.join(test_data_path, schema.ARQUIVO_FERIADOS_LOCAL)
             ),
             "justificativas": self._read_sheet_local(
-                os.path.join(test_data_path, self.config.ARQUIVO_JUSTIFICATIVAS_LOCAL)
+                os.path.join(test_data_path, schema.ARQUIVO_JUSTIFICATIVAS_LOCAL)
             ),
             "registros_brutos": self._load_all_xmls(presenca_path),
         }
@@ -51,7 +51,7 @@ class DataReader:
         log.info(f"Leitor de Dados: Lendo arquivo local '{full_path}'...")
         if not os.path.exists(full_path):
             log.error(f"Leitor de Dados: Arquivo não encontrado: '{full_path}'.")
-            raise FileNotFoundError(f"Arquivo não encontrado: '{full_path}'.")
+            return pd.DataFrame()
         return pd.read_csv(full_path)
 
     def _load_all_xmls(self, folder_path: str) -> pd.DataFrame:
@@ -63,8 +63,7 @@ class DataReader:
             ano = self.config.ANO_DO_RELATORIO
             mes = self.config.MES_DO_RELATORIO
             target_pattern = f"{ano:04d}-{mes:02d}"
-            log.info(
-                f"Leitor de Dados: Procurando arquivos contendo '{target_pattern}' em '{folder_path}'...")
+            log.info(f"Leitor de Dados: Procurando arquivos contendo '{target_pattern}' em '{folder_path}'...")
         except AttributeError:
             log.error("Leitor de Dados: ANO_DO_RELATORIO ou MES_DO_RELATORIO não definidos.")
             return pd.DataFrame()
@@ -100,8 +99,7 @@ class DataReader:
                  [c.text for c in r.findall(".//ss:Data", ns)]), -1
             )
             if header_row_idx == -1:
-                log.warning(
-                    f"Leitor de Dados: Cabeçalho 'Nome' não encontrado em {os.path.basename(file_path)}. Pulando.")
+                log.warning(f"Leitor de Dados: Cabeçalho 'Nome' não encontrado em {os.path.basename(file_path)}. Pulando.")
                 return pd.DataFrame()
             
             header = [c.text for c in rows[header_row_idx].findall(".//ss:Data", ns)]
@@ -136,19 +134,19 @@ class DataReader:
         
         return {
             "cadastro": self._read_sheet_online(
-                self.config.PLANILHA_CADASTRO, self.config.ABA_CADASTRO_PRINCIPAL
+                schema.PLANILHA_CADASTRO, schema.ABA_CADASTRO_PRINCIPAL
             ),
             "io_alunos": self._read_sheet_online(
-                self.config.PLANILHA_IO_ALUNOS, self.config.ABA_IO_ALUNOS
+                schema.PLANILHA_IO_ALUNOS, schema.ABA_IO_ALUNOS
             ),
             "ignorar": self._read_sheet_online(
-                self.config.PLANILHA_CADASTRO, self.config.ABA_NOMES_IGNORAR
+                schema.PLANILHA_CADASTRO, schema.ABA_NOMES_IGNORAR
             ),
             "feriados": self._read_sheet_online(
-                self.config.PLANILHA_FERIADOS, ano_feriado_str
+                schema.PLANILHA_FERIADOS, ano_feriado_str
             ),
             "justificativas": self._read_sheet_online(
-                self.config.PLANILHA_JUSTIFICATIVAS, self.config.ABA_JUSTIFICATIVAS
+                schema.PLANILHA_JUSTIFICATIVAS, schema.ABA_JUSTIFICATIVAS
             ),
             "registros_brutos": self._load_all_xmls(presenca_path),
         }

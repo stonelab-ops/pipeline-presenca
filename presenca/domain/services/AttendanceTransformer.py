@@ -3,7 +3,7 @@ from typing import Dict
 from ..factory import TenureFactory, CoordinatorFactory
 from ..models.tenure import Tenure
 import logging
-from ...utils import schema
+import schema
 
 log = logging.getLogger(__name__)
 

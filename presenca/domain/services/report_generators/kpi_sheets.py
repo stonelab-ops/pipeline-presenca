@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 from typing import Dict, Any
 from datetime import date, datetime
-from ....utils import schema
+import schema
 from ...models.coordinator import Coordinator
 
 log = logging.getLogger(__name__)

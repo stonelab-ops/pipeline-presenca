@@ -4,7 +4,7 @@ import logging
 import os
 import unicodedata
 from datetime import date
-from ....utils import schema
+import schema
 
 log = logging.getLogger(__name__)
 

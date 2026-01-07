@@ -1,3 +1,22 @@
+PLANILHA_CADASTRO = "[Stone Lab] Cadastro de Pessoal (Responses)"
+ABA_CADASTRO_PRINCIPAL = "Form Responses 1"
+ABA_NOMES_IGNORAR = "Pessoas para nao monitorar"
+
+PLANILHA_IO_ALUNOS = "IO Alunos no StoneLab (Responses)"
+ABA_IO_ALUNOS = "Form Responses 1"
+
+PLANILHA_FERIADOS = "Feriados PUC-Rio"
+PLANILHA_JUSTIFICATIVAS = "Aviso de ausência (Responses)"
+ABA_JUSTIFICATIVAS = "Form Responses 1"
+
+ARQUIVO_CADASTRO_LOCAL = "cadastro.csv"
+ARQUIVO_IO_LOCAL = "io_alunos.csv"
+ARQUIVO_IGNORAR_LOCAL = "ignorar.csv"
+ARQUIVO_FERIADOS_LOCAL = "feriados.csv"
+ARQUIVO_JUSTIFICATIVAS_LOCAL = "justificativas.csv"
+PASTA_DASHBOARD_LOCAL = "output-dashboard"
+NOME_ARQUIVO_DASHBOARD = "DASHBOARD_SNAPSHOT_ATUAL.xlsx"
+
 CADASTRO_NOME_COMPLETO = "Qual o seu nome completo?"
 CADASTRO_FUNCAO = "Qual a sua função no projeto?"
 CADASTRO_COORDENADOR = "Quem é o professor responsável pelo seu projeto?"
@@ -55,6 +74,11 @@ OUT_COL_ACOES_SITUACAO = "Situacao"
 OUT_COL_ULTIMA_PRESENCA = "Última Presença"
 OUT_COL_DIAS_AUSENTE = "Dias Ausente"
 OUT_COL_RISCO = "Nível de Risco"
+OUT_COL_NOME_LIMPEZA = "Nome"
+OUT_COL_ULTIMA_PRESENCA_LIMPEZA = "Última Presença"
+OUT_COL_DIAS_INATIVO_LIMPEZA = "Dias Ausente"
+
+LIMIAR_ATINGIMENTO_GERAL = 0.75
 
 RISCO_3_VERMELHO = "(3) Vermelho (> 45 dias)"
 RISCO_2_LARANJA = "(2) Laranja (> 30 dias)"
@@ -84,18 +108,9 @@ ABA_XML_EXPORT = "export_XMLs"
 ABA_RAW_PRESENCE = "raw_presence_data"
 ABA_IGNORAR = "Pessoas para nao monitorar"
 ABA_INATIVIDADE = "Inatividade_Alunos"
-
 ABA_DB_HISTORICO = "Report_Raw_Historico"
 ABA_DB_INATIVIDADE = "Alerta_Inatividade_Historico"
-
-PASTA_DASHBOARD_LOCAL = "output-dashboard"
-NOME_ARQUIVO_DASHBOARD = "DASHBOARD_SNAPSHOT_ATUAL.xlsx"
-
 ABA_LIMPEZA_BIOMETRIA = "Limpeza_Biometria_Inativos"
-
-OUT_COL_NOME_LIMPEZA = "Nome"
-OUT_COL_ULTIMA_PRESENCA_LIMPEZA = "Última Presença"
-OUT_COL_DIAS_INATIVO_LIMPEZA = "Dias Ausente"
 
 DB_HIST_COL_ID = COL_ID_STONELAB
 DB_HIST_COL_NOME = OUT_COL_NOME
@@ -116,9 +131,8 @@ COLOR_YELLOW_FONT = '#9C6500'
 COLOR_ORANGE_BG = '#FCD5B4'
 COLOR_ORANGE_FONT = '#9C6500'
 
-
 FORMAT_RULES_RISCO = {
-    "Vermelho": {'bg_color': COLOR_RED_BG,    'font_color': COLOR_RED_FONT},
-    "Laranja":  {'bg_color': COLOR_ORANGE_BG, 'font_color': COLOR_ORANGE_FONT},
-    "Amarelo":  {'bg_color': COLOR_YELLOW_BG, 'font_color': COLOR_YELLOW_FONT}
+    "Vermelho": {'bg_color': COLOR_RED_BG, 'font_color': COLOR_RED_FONT},
+    "Laranja": {'bg_color': COLOR_ORANGE_BG, 'font_color': COLOR_ORANGE_FONT},
+    "Amarelo": {'bg_color': COLOR_YELLOW_BG, 'font_color': COLOR_YELLOW_FONT}
 }
