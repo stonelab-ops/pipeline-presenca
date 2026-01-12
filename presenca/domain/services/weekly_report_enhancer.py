@@ -74,7 +74,7 @@ class WeeklyReportEnhancer:
             holidays = set(pd.to_datetime(holidays_df[schema.FERIADOS_DATA], dayfirst=True, errors='coerce').dt.date)
 
         def calculate_days(row):
-            start = row[schema.COL_DATE].date()
+            start = row[schema.COL_DATE]
             week_days = pd.date_range(start, periods=5, freq='B') 
             
             holidays_in_week = 0

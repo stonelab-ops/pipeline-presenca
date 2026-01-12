@@ -136,3 +136,21 @@ FORMAT_RULES_RISCO = {
     "Laranja": {'bg_color': COLOR_ORANGE_BG, 'font_color': COLOR_ORANGE_FONT},
     "Amarelo": {'bg_color': COLOR_YELLOW_BG, 'font_color': COLOR_YELLOW_FONT}
 }
+COL_ID_STONELAB = "id_stonelab"           
+COL_NOME_CADASTRO = "Qual o seu nome completo?" 
+
+COL_DATA_IO = "Carimbo de data/hora"      
+
+COLUNAS_OBRIGATORIAS_CADASTRO = [
+    COL_NOME_CADASTRO,
+    COL_ID_STONELAB,
+    "Qual a sua função no projeto?",
+    "Qual seu e-mail?"
+]
+
+COLUNAS_OBRIGATORIAS_IO = [
+    "Nome",
+    "ID_Stonelab",   
+    COL_DATA_IO,
+    "Frequência esperada"
+]
