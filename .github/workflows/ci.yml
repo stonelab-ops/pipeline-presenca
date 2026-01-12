@@ -38,15 +38,15 @@ jobs:
         echo "ANO_DO_RELATORIO = 2025" > configs/settings_local.py
         echo "MES_DO_RELATORIO = 11" >> configs/settings_local.py
         echo "MODO_EXECUCAO = 'local'" >> configs/settings_local.py
-        echo "CAMINHOS = {'local': {'input': 'raw_data_local', 'output': 'output'}}" >> configs/settings_local.py
         echo "NOME_ARQUIVO_CADASTRO = 'base_cadastral.csv'" >> configs/settings_local.py
+        echo "CAMINHOS = {'local': {'input': 'raw_data_local', 'output': 'output', 'dados_presenca': 'raw_data_local'}}" >> configs/settings_local.py
 
     - name: 🎭 Preparando dados Mock
       run: |
         cp tests/fixtures/mock_presenca.xml raw_data_local/Ponto_2025-11.xml
         cp tests/fixtures/mock_cadastro.csv raw_data_local/base_cadastral.csv
         cp tests/fixtures/mock_cadastro.csv test_data/cadastro.csv
-        cp tests/fixtures/mock_cadastro.csv test_data/io_alunos.csv
+        cp tests/fixtures/mock_io_alunos.csv test_data/io_alunos.csv
         touch test_data/feriados.csv
 
     - name: 🧪 Rodando os Guardiões (Pytest)
