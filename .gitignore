@@ -18,3 +18,4 @@ __pycache__/
 # 5. Arquivos de Configuração de IDE
 .vscode/
 .idea/
+configs/settings_local.py
