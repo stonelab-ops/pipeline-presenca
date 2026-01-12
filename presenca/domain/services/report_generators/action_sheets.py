@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import date, timedelta, datetime
 import logging
 from typing import Dict, Set
-from ....utils import schema 
+import schema 
 
 try:
     from ....utils.date_utils import get_workdays_for_week

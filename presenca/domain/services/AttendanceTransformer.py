@@ -3,11 +3,11 @@ from typing import Dict
 from ..factory import TenureFactory, CoordinatorFactory
 from ..models.tenure import Tenure
 import logging
-from ...utils import schema
+import schema
 
 log = logging.getLogger(__name__)
 
-class DataProcessingService:
+class AttendanceTransformer:
     def __init__(self, data_frames: dict, config: dict):
         self.data = data_frames
         self.config = config

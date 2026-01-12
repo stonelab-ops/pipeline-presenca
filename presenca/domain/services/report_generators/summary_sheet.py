@@ -1,5 +1,5 @@
 import pandas as pd
-from ....utils import schema
+import schema
 from ...models.coordinator import Coordinator
 
 class SummarySheetGenerator:
@@ -38,7 +38,7 @@ class SummarySheetGenerator:
             resumo['semanas_atingidas'] / resumo['semanas_contabilizadas']
         )
         
-        limiar = self.config.LIMIAR_ATINGIMENTO_GERAL
+        limiar = schema.LIMIAR_ATINGIMENTO_GERAL
         
         resumo['Status'] = resumo['pct'].apply(
             lambda x: schema.STATUS_ATINGIU if x >= limiar else schema.STATUS_NAO_ATINGIU

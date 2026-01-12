@@ -1,5 +1,0 @@
-Carimbo de data/hora,Endereço de e-mail,"ID_Stonelab ",Nome,Quando a data de referência?,Frequência esperada
-"01/01/2025 08:00:00",teste@email.com,ID_VALIDO_1,"Aluno Ativo Simples","01/08/2025",3
-"01/02/2025 08:01:00",teste@email.com,ID_VALIDO_2,"Aluno Jornada Complexa","01/08/2025",2
-"15/08/2025 09:00:00",teste@email.com,ID_VALIDO_2,"Aluno Jornada Complexa","15/08/2025",4
-"30/09/2025 18:00:00",teste@email.com,ID_VALIDO_2,"Aluno Jornada Complexa","30/09/2025","Saiu do StoneLab"

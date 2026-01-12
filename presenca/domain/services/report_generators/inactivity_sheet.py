@@ -3,7 +3,7 @@ import numpy as np
 import logging
 from datetime import date
 from typing import Dict, Set, Any, List
-from ....utils import schema
+import schema
 from ...models.coordinator import Coordinator
 from .inactivity_calculator import InactivityCalculator
 
@@ -96,7 +96,7 @@ class InactivitySheetGenerator:
         return just_map
 
     def _get_freq_value(self, tenure_obj: Any) -> int:
-        candidates = ['frequency', 'frequency_1', 'freq', 'freq_1', 'expected_frequency', 'original_expected_frequency']
+        candidates = ['frequency','frequency_1','freq','freq_1','expected_frequency','original_expected_frequency']
         for attr in candidates:
             if hasattr(tenure_obj, attr):
                 val = getattr(tenure_obj, attr)

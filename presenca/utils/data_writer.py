@@ -3,9 +3,15 @@ import logging
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any, Optional
-from . import schema
+import schema
 from googleapiclient.http import MediaFileUpload
 import gspread
+
+try:
+    from google.colab import files
+    HAS_COLAB = True
+except ImportError:
+    HAS_COLAB = False
 
 try:
     from gspread_dataframe import set_with_dataframe, get_as_dataframe
@@ -54,7 +60,9 @@ class DataWriter:
             self._update_google_sheets_master(df_new, spreadsheet_id, tab_name)
 
     def _identify_date_column(self, df: pd.DataFrame) -> Optional[str]:
-        if schema.OUT_COL_SEMANA in df.columns:
+        if schema.DB_HIST_COL_DATE in df.columns:
+            return schema.DB_HIST_COL_DATE
+        elif schema.OUT_COL_SEMANA in df.columns:
             return schema.OUT_COL_SEMANA
         elif schema.OUT_COL_ULTIMA_PRESENCA in df.columns:
             return schema.OUT_COL_ULTIMA_PRESENCA
@@ -85,7 +93,6 @@ class DataWriter:
             
             if not df_old.empty and date_col and date_col in df_old.columns:
                 new_dates = df_new[date_col].astype(str).unique()
-                
                 df_old[date_col] = df_old[date_col].astype(str)
                 df_history_clean = df_old[~df_old[date_col].isin(new_dates)].copy()
                 
@@ -107,23 +114,20 @@ class DataWriter:
         
         try:
             if os.path.exists(full_path):
-                df_old = pd.read_csv(full_path)
+                df_old = pd.read_csv(full_path, dtype=str)
+                df_new_str = df_new.astype(str)
                 
-                date_col = self._identify_date_column(df_new)
+                date_col = self._identify_date_column(df_new_str)
                 
                 if date_col and date_col in df_old.columns:
-                    df_old[date_col] = df_old[date_col].astype(str)
-                    df_new[date_col] = df_new[date_col].astype(str)
-                    
-                    new_dates = df_new[date_col].unique()
-                    
+                    new_dates = df_new_str[date_col].unique()
                     df_history_clean = df_old[~df_old[date_col].isin(new_dates)].copy()
                     
-                    df_final = pd.concat([df_history_clean, df_new], ignore_index=True)
+                    df_final = pd.concat([df_history_clean, df_new_str], ignore_index=True)
                 else:
-                    df_final = pd.concat([df_old, df_new], ignore_index=True)
+                    df_final = pd.concat([df_old, df_new_str], ignore_index=True)
             else:
-                df_final = df_new
+                df_final = df_new.astype(str)
             
             df_final.to_csv(full_path, index=False)
             
@@ -137,52 +141,51 @@ class DataWriter:
             if isinstance(df, pd.DataFrame):
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
                 
-                if sheet_name == schema.ABA_INATIVIDADE and not df.empty:
-                    self._apply_risk_formatting(writer, sheet_name, df)
+                if sheet_name == schema.ABA_INATIVIDADE:
+                    self._apply_generic_formatting(
+                        writer, sheet_name, df, 
+                        schema.OUT_COL_RISCO, 
+                        schema.FORMAT_RULES_RISCO,
+                        exact_match=False
+                    )
+
+                self._autofit_columns(writer, sheet_name, df)
+
             else:
                 log.warning(f"Escritor: Item '{sheet_name}' inválido.")
 
-    def _apply_risk_formatting(self, writer, sheet_name, df):
-        workbook = writer.book
-        worksheet = writer.sheets[sheet_name]
-        
-        format_red = workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
-        format_orange = workbook.add_format({'bg_color': '#FFEB9C', 'font_color': '#9C6500'})
-        format_yellow = workbook.add_format({'bg_color': '#FFFFCC', 'font_color': '#000000'})
-        
-        if schema.OUT_COL_RISCO not in df.columns:
+    def _apply_generic_formatting(self, writer, sheet_name, df, col_name_target, rules_dict, exact_match=False):
+        if col_name_target not in df.columns:
             return
 
-        risk_col_idx = df.columns.get_loc(schema.OUT_COL_RISCO)
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+        col_idx = df.columns.get_loc(col_name_target)
         start_row = 1 
         end_row = len(df) + 1
         
-        worksheet.conditional_format(start_row, risk_col_idx, end_row, risk_col_idx, {
-            'type': 'text',
-            'criteria': 'containing',
-            'value': schema.RISCO_3_VERMELHO,
-            'format': format_red
-        })
-        worksheet.conditional_format(start_row, risk_col_idx, end_row, risk_col_idx, {
-            'type': 'text',
-            'criteria': 'containing',
-            'value': schema.RISCO_2_LARANJA,
-            'format': format_orange
-        })
-        worksheet.conditional_format(start_row, risk_col_idx, end_row, risk_col_idx, {
-            'type': 'text',
-            'criteria': 'containing',
-            'value': schema.RISCO_1_AMARELO,
-            'format': format_yellow
-        })
-        
+        criteria_type = 'cell' if exact_match else 'text'
+        criteria_operator = 'equal to' if exact_match else 'containing'
+
+        for text_key, format_props in rules_dict.items():
+            fmt = workbook.add_format(format_props)
+            
+            worksheet.conditional_format(start_row, col_idx, end_row, col_idx, {
+                'type': criteria_type,
+                'criteria': criteria_operator,
+                'value': f'"{text_key}"' if exact_match else text_key,
+                'format': fmt
+            })
+
+    def _autofit_columns(self, writer, sheet_name, df):
+        worksheet = writer.sheets[sheet_name]
         for i, col in enumerate(df.columns):
             try:
                 max_len = df[col].astype(str).map(len).max()
                 column_len = max(max_len, len(col)) + 2
+                worksheet.set_column(i, i, column_len)
             except:
-                column_len = 15
-            worksheet.set_column(i, i, column_len)
+                pass
 
     def _save_local(self, report_tabs: Dict[str, pd.DataFrame], filename: str, path: str) -> str:
         full_path = os.path.join(path, filename)

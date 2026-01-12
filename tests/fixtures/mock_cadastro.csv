@@ -1,5 +1,0 @@
-Qual o seu nome completo?,Ativo,Timestamp,Qual seu e-mail?,Qual seu telefone?,"Qual a sua função no projeto?",Quem é o professor responsável pelo seu projeto?,"Se você pediu um computador, qual o sistema operacional preferido?",Matrícula da PUC (apenas número),Primeiro nome,Último nome,expected_frequency,id_stonelab,nome_entrada
-"Aluno Ativo Simples",1,"01/01/2025 10:00:00",ativo.simples@email.com,"(21) 99999-0001","Aluno de Mestrado","Coordenador Alfa",Linux,2110001,Aluno,Simples,,ID_VALIDO_1,aluno_ativo_1
-"Aluno Jornada Complexa",1,"01/01/2025 10:01:00",jornada.complexa@email.com,"(21) 99999-0002","Aluno de Doutorado","Coordenador Alfa",Windows,2110002,Aluno,Complexa,,ID_VALIDO_2,aluno_ativo_2
-"Professor Teste",1,"01/01/2025 10:02:00",prof.teste@email.com,"(21) 99999-0003","Professor Pesquisador","Ele Mesmo",Não pedi computador,,Professor,Teste,,ID_PROF,prof_teste
-"Aluno Inativo",0,"01/01/2025 10:03:00",aluno.inativo@email.com,"(21) 99999-0004","Aluno de Mestrado","Coordenador Beta",Windows,2110004,Aluno,Inativo,,ID_INATIVO,aluno_inativo
