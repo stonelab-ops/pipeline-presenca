@@ -31,6 +31,14 @@
     <Cell><Data ss:Type="String">2025-11-03 18:00:00</Data></Cell>
     <Cell><Data ss:Type="String">Face</Data></Cell>
    </Row>
+
+   <Row>
+    <Cell><Data ss:Type="String">3</Data></Cell>
+    <Cell><Data ss:Type="String">9999</Data></Cell>
+    <Cell><Data ss:Type="String">Fantasma Sem Cadastro</Data></Cell>
+    <Cell><Data ss:Type="String">2025-11-03 09:00:00</Data></Cell>
+    <Cell><Data ss:Type="String">Face</Data></Cell>
+   </Row>
   </Table>
  </Worksheet>
 </Workbook>
