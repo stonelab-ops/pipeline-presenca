@@ -25,29 +25,33 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pandas openpyxl lxml
 
-    - name: 📁 Criando estrutura de pastas
+    - name: 📁 Criando estrutura de pastas (Ambiente Limpo)
       run: |
         mkdir -p output
         mkdir -p output-dashboard
         mkdir -p raw_data_local
-        mkdir -p test_data
+        mkdir -p test_data  # <--- Criamos a pasta vazia aqui
         mkdir -p configs
 
-    - name: ⚙️ Gerando configuração temporária
+    - name: ⚙️ Gerando configuração temporária (O Menu)
       run: |
         echo "ANO_DO_RELATORIO = 2025" > configs/settings_local.py
         echo "MES_DO_RELATORIO = 11" >> configs/settings_local.py
         echo "MODO_EXECUCAO = 'local'" >> configs/settings_local.py
         echo "NOME_ARQUIVO_CADASTRO = 'base_cadastral.csv'" >> configs/settings_local.py
-        echo "CAMINHOS = {'local': {'input': 'raw_data_local', 'output': 'output', 'dados_presenca': 'raw_data_local'}}" >> configs/settings_local.py
+        
+        # AQUI ESTAVA O ERRO: Adicionamos a chave 'test_data' apontando para a pasta que criamos acima
+        echo "CAMINHOS = {'local': {'input': 'raw_data_local', 'output': 'output', 'dados_presenca': 'raw_data_local', 'test_data': 'test_data'}}" >> configs/settings_local.py
 
-    - name: 🎭 Preparando dados Mock
+    - name: 🎭 Enganando o Código (Mock Data -> Pastas Esperadas)
       run: |
         cp tests/fixtures/mock_presenca.xml raw_data_local/Ponto_2025-11.xml
         cp tests/fixtures/mock_cadastro.csv raw_data_local/base_cadastral.csv
-        cp tests/fixtures/mock_cadastro.csv test_data/cadastro.csv
+        cp tests/fixtures/mock_feriados.csv raw_data_local/feriados.csv
+        
         cp tests/fixtures/mock_io_alunos.csv test_data/io_alunos.csv
-        touch test_data/feriados.csv
+        cp tests/fixtures/mock_feriados.csv test_data/feriados.csv
+        cp tests/fixtures/mock_cadastro.csv test_data/cadastro.csv
 
     - name: 🧪 Rodando os Guardiões (Pytest)
       run: |
