@@ -30,11 +30,11 @@ class DataWriter:
         self.gc = gspread_client
         
         if self.mode == 'local':
-            self.output_path = "output"
+            caminhos_local = getattr(self.config, 'CAMINHOS', {}).get('local', {})
+            self.output_path = caminhos_local.get('output', "output")
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
-            
-            self.dashboard_local_path = os.path.join(self.output_path, "output-dashboard")
+            self.dashboard_local_path = caminhos_local.get('dashboard', os.path.join(self.output_path, "output-dashboard"))
             if not os.path.exists(self.dashboard_local_path):
                 os.makedirs(self.dashboard_local_path)
         else:

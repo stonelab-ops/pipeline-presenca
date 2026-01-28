@@ -138,7 +138,6 @@ FORMAT_RULES_RISCO = {
 }
 COL_ID_STONELAB = "id_stonelab"           
 COL_NOME_CADASTRO = "Qual o seu nome completo?" 
-
 COL_DATA_IO = "Carimbo de data/hora"      
 
 COLUNAS_OBRIGATORIAS_CADASTRO = [
