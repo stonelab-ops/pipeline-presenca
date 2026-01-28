@@ -6,6 +6,7 @@ import schema
 from presenca.pipeline import PresencePipeline
 from presenca.utils.data_reader import DataReader
 from presenca.utils.data_writer import DataWriter
+from presenca.utils.input_validator import validar_estrutura_inputs
 
 try:
     from configs import settings_local as config
@@ -46,6 +47,13 @@ def run_pipeline():
     log.info(f"Lendo dados de: {path_dados}")
 
     data_reader = DataReader(config=config, gspread_client=None)
+    
+    dados_brutos = data_reader.load_all_sources()
+
+    if not validar_estrutura_inputs(dados_brutos):
+        log.error("Pipeline interrompido devido a erros na validação dos dados de entrada.")
+        return
+
     data_writer = DataWriter(config=config, gdrive_service=None)
     
     pipeline = PresencePipeline(
