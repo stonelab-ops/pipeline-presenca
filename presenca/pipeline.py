@@ -122,6 +122,10 @@ class PresencePipeline:
             )
             
             db_master_id = getattr(self.config, 'ID_PLANILHA_MESTRA', None)
+            if not db_master_id:
+                path_key = 'local' if self.config.MODO_EXECUCAO == 'local' else 'colab'
+                db_master_id = self.config.CAMINHOS.get(path_key, {}).get('ID_PLANILHA_MESTRA')
+
             if db_master_id or self.config.MODO_EXECUCAO == 'local':
                 log.info("Escritor 2/2: Atualizando Banco de Dados Mestre (Dashboard)...")
                 
@@ -132,7 +136,7 @@ class PresencePipeline:
                         schema.ABA_DB_HISTORICO
                     )
             else:
-                log.info("Config 'ID_PLANILHA_MESTRA' não encontrada. Pulando atualização do Dashboard.")
+                log.info("Config 'ID_PLANILHA_MESTRA' não encontrada em nenhum lugar. Pulando atualização do Dashboard.")
             
             log.info("Sucesso: Pipeline concluído.")
             log.info(f"Arquivo final salvo em: {output_file_path}")
