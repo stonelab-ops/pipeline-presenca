@@ -9,6 +9,7 @@ from presenca.utils.data_writer import DataWriter
 from presenca.utils.input_validator import validar_estrutura_inputs
 import gspread
 from google.auth import default
+from googleapiclient.discovery import build 
 
 try:
     from configs import settings_local as config
@@ -31,7 +32,7 @@ def run_pipeline():
         log.info(f"Período de Análise: {ano}-{mes:02d}")
     except Exception:
         log.error("Erro CRÍTICO: Configuração de ANO ou MES não encontrada.")
-        log.error("DICA: No Colab, certifique-se de definir 'config.ANO_DO_RELATORIO' antes de chamar 'run_pipeline()'.")
+        log.error("DICA: No Colab, defina 'config.ANO_DO_RELATORIO' antes de rodar.")
         return
 
     try:
@@ -50,6 +51,8 @@ def run_pipeline():
     log.info(f"Lendo dados de: {path_dados}")
 
     gspread_client = None
+    gdrive_service = None
+
     if mode == 'colab':
         try:
             log.info("Autenticando sessão do Google Colab...")
@@ -57,9 +60,10 @@ def run_pipeline():
             auth.authenticate_user()
             creds, _ = default()
             gspread_client = gspread.authorize(creds)
-            log.info("Autenticação realizada com sucesso!")
+            gdrive_service = build('drive', 'v3', credentials=creds)
+            log.info("Autenticação (Sheets + Drive) realizada com sucesso!")
         except ImportError:
-            log.warning("Bibliotecas do Google Colab não encontradas. Gspread client será None.")
+            log.warning("Libs do Google Colab não encontradas.")
         except Exception as e:
             log.error(f"Erro na autenticação: {e}")
             return
@@ -69,10 +73,14 @@ def run_pipeline():
     dados_brutos = data_reader.load_all_sources()
 
     if not validar_estrutura_inputs(dados_brutos):
-        log.error("Pipeline interrompido devido a erros na validação dos dados de entrada.")
+        log.error("Pipeline interrompido na validação.")
         return
 
-    data_writer = DataWriter(config=config, gdrive_service=None)
+    data_writer = DataWriter(
+        config=config, 
+        gdrive_service=gdrive_service, 
+        gspread_client=gspread_client
+    )
     
     pipeline = PresencePipeline(
         data_reader=data_reader,
