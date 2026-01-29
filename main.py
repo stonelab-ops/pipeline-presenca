@@ -7,6 +7,8 @@ from presenca.pipeline import PresencePipeline
 from presenca.utils.data_reader import DataReader
 from presenca.utils.data_writer import DataWriter
 from presenca.utils.input_validator import validar_estrutura_inputs
+import gspread
+from google.auth import default
 
 try:
     from configs import settings_local as config
@@ -28,7 +30,8 @@ def run_pipeline():
         mes = config.MES_DO_RELATORIO
         log.info(f"Período de Análise: {ano}-{mes:02d}")
     except Exception:
-        log.error("Erro: Configuração de ANO ou MES não encontrada.")
+        log.error("Erro CRÍTICO: Configuração de ANO ou MES não encontrada.")
+        log.error("DICA: No Colab, certifique-se de definir 'config.ANO_DO_RELATORIO' antes de chamar 'run_pipeline()'.")
         return
 
     try:
@@ -46,7 +49,22 @@ def run_pipeline():
     path_dados = config.CAMINHOS[path_key]['dados_presenca']
     log.info(f"Lendo dados de: {path_dados}")
 
-    data_reader = DataReader(config=config, gspread_client=None)
+    gspread_client = None
+    if mode == 'colab':
+        try:
+            log.info("Autenticando sessão do Google Colab...")
+            from google.colab import auth
+            auth.authenticate_user()
+            creds, _ = default()
+            gspread_client = gspread.authorize(creds)
+            log.info("Autenticação realizada com sucesso!")
+        except ImportError:
+            log.warning("Bibliotecas do Google Colab não encontradas. Gspread client será None.")
+        except Exception as e:
+            log.error(f"Erro na autenticação: {e}")
+            return
+
+    data_reader = DataReader(config=config, gspread_client=gspread_client)
     
     dados_brutos = data_reader.load_all_sources()
 
@@ -62,7 +80,7 @@ def run_pipeline():
         config=config
     )
     
-    pipeline.run()
+    pipeline.run(dados_input=dados_brutos)
 
 if __name__ == "__main__":
     run_pipeline()

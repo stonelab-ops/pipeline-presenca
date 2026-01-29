@@ -30,7 +30,7 @@ class PresencePipeline:
         self.tenure_factory = TenureFactory()
         log.info("Pipeline de Presença: Iniciando execução.")
 
-    def run(self) -> str:
+    def run(self, dados_input: Dict[str, Any] = None) -> str:
         try:
             try:
                 ano = self.config.ANO_DO_RELATORIO
@@ -45,8 +45,12 @@ class PresencePipeline:
                 log.error(f"Falha ao calcular datas do relatório: {e}")
                 raise
 
-            log.info("Leitura: Carregando fontes de dados (XMLs e Planilhas)...")
-            all_data = self.data_reader.load_all_sources()
+            if dados_input:
+                log.info("Pipeline: Usando dados já carregados (Validação). Pulei o download.")
+                all_data = dados_input
+            else:
+                log.info("Leitura: Carregando fontes de dados (XMLs e Planilhas)...")
+                all_data = self.data_reader.load_all_sources()
             
             log.info("Processamento: Limpando e preparando dados brutos...")
             tenures = self.tenure_factory.create_tenures_from_df(all_data['io_alunos'])
