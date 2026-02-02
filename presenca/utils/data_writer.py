@@ -200,18 +200,59 @@ class DataWriter:
 
     def _save_to_drive(self, report_tabs: Dict[str, pd.DataFrame], filename: str, folder_id: str) -> str:
         log.info(f"Escritor: Upload Drive '{filename}'...")
+        
         if not self.gdrive_service:
             log.error("Escritor: Drive Service nulo.")
             return ""
+
+        temp_path = ""
         try:
-            temp_path = f"/content/{filename}"
+            temp_path = f"/content/{filename}" if HAS_COLAB else filename
+            
             with pd.ExcelWriter(temp_path, engine='xlsxwriter') as writer:
                 self._write_excel_content(writer, report_tabs)
-            
-            file_metadata = {'name': filename, 'parents': [folder_id]}
             media = MediaFileUpload(temp_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            file = self.gdrive_service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-            return file.get('webViewLink')
+            query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
+            
+            results = self.gdrive_service.files().list(
+                q=query, 
+                spaces='drive', 
+                fields='files(id, name, webViewLink)'
+            ).execute()
+            
+            files_found = results.get('files', [])
+
+            if files_found:
+                file_id = files_found[0]['id']
+                log.info(f"Escritor: Arquivo encontrado (ID: {file_id}). Substituindo versão antiga...")
+                
+                updated_file = self.gdrive_service.files().update(
+                    fileId=file_id,
+                    media_body=media,
+                    fields='id, webViewLink'
+                ).execute()
+                
+                link = updated_file.get('webViewLink')
+                log.info(f"Escritor: Arquivo atualizado com sucesso!")
+                return link
+            
+            else:
+                log.info("Escritor: Arquivo novo. Criando...")
+                file_metadata = {'name': filename, 'parents': [folder_id]}
+                
+                created_file = self.gdrive_service.files().create(
+                    body=file_metadata, 
+                    media_body=media, 
+                    fields='id, webViewLink'
+                ).execute()
+                
+                link = created_file.get('webViewLink')
+                log.info(f"Escritor: Arquivo criado com sucesso!")
+                return link
+
         except Exception as e:
             log.error(f"Escritor: Falha no upload Drive: {e}", exc_info=True)
             return ""
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
