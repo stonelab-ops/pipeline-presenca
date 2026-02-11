@@ -1,9 +1,8 @@
 import pandas as pd
-from typing import Dict
-from ..factory import TenureFactory, CoordinatorFactory
-from ..models.tenure import Tenure
 import logging
 import schema
+from typing import Dict
+from ..factory import TenureFactory, CoordinatorFactory
 
 log = logging.getLogger(__name__)
 
@@ -25,10 +24,12 @@ class AttendanceTransformer:
         df_registros = self.data['registros_brutos']
         if not df_registros.empty:
             df_registros.dropna(subset=['Datetime', 'Name'], inplace=True)
+            
             df_registros[schema.COL_XML_DATE] = pd.to_datetime(
                 df_registros['Datetime'].str.split(' ').str[0],
                 errors='coerce'
             ).dt.date
+            
             df_registros.dropna(subset=[schema.COL_XML_DATE], inplace=True)
             df_registros.drop_duplicates(subset=['Name', schema.COL_XML_DATE], inplace=True)
             df_registros.rename(columns={'Name': schema.COL_NOME_ENTRADA}, inplace=True)
@@ -48,6 +49,16 @@ class AttendanceTransformer:
         df_depara[schema.COL_COORDINATOR] = df_depara[schema.COL_COORDINATOR].apply(
             self.coordinator_factory.get_or_create
         )
+
+        def clean_coordinator_name(val):
+            if hasattr(val, 'name'):
+                return str(val.name).strip()
+            s_val = str(val)
+            if 'Coordinator' in s_val:
+                return s_val.replace("Coordinator(name='", "").replace("')", "").strip()
+            return s_val.strip()
+
+        df_depara[schema.COL_COORDINATOR] = df_depara[schema.COL_COORDINATOR].apply(clean_coordinator_name)
         
         self.data['cadastro'] = df_depara
 

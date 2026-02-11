@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import schema
 from ...models.coordinator import Coordinator
 
@@ -8,42 +9,42 @@ class SummarySheetGenerator:
         self.config = config
 
     def generate(self) -> dict:
-        if self.report_kpi.empty or schema.OUT_COL_SITUACAO not in self.report_kpi.columns:
+        if self.report_kpi.empty or 'meta_dinamica' not in self.report_kpi.columns:
             return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
             
-        df = self.report_kpi[
-            self.report_kpi[schema.OUT_COL_SITUACAO] != schema.STATUS_JUSTIFICADO
-        ].copy()
-        
-        if df.empty:
-            return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
-            
-        df["Atingimento_Bin"] = df[schema.OUT_COL_SITUACAO].map(
-            lambda x: 1 if x == schema.STATUS_ATINGIU else 0
-        )
+        df = self.report_kpi.copy()
         
         df['coordinator_name'] = df[schema.COL_COORDINATOR].apply(
             lambda x: x.name if isinstance(x, Coordinator) else str(x)
         )
         
         resumo = df.groupby([schema.COL_NAME, 'coordinator_name']).agg(
-            semanas_contabilizadas=(schema.COL_DATE, 'count'),
-            semanas_atingidas=('Atingimento_Bin', 'sum')
+            total_presenca=('observed_frequency', 'sum'),
+            total_meta=('meta_dinamica', 'sum'),
+            total_justificativas=('justified_days', 'sum') 
         ).reset_index()
         
         if resumo.empty:
             return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
-            
-        resumo['pct'] = (
-            resumo['semanas_atingidas'] / resumo['semanas_contabilizadas']
-        )
-        
-        limiar = schema.LIMIAR_ATINGIMENTO_GERAL
-        
-        resumo['Status'] = resumo['pct'].apply(
-            lambda x: schema.STATUS_ATINGIU if x >= limiar else schema.STATUS_NAO_ATINGIU
-        )
-        
+
+        def calcular_porcentagem(row):
+            if row['total_meta'] == 0:
+                return 1.0 
+            return row['total_presenca'] / row['total_meta']
+
+        resumo['ratio_atingimento'] = resumo.apply(calcular_porcentagem, axis=1)
+
+        def definir_status(row):
+            if row['total_presenca'] >= row['total_meta']:
+                return schema.STATUS_ATINGIU
+            if row['total_justificativas'] > 0:
+                return schema.STATUS_JUSTIFICADO
+            return schema.STATUS_NAO_ATINGIU
+
+        resumo['Status'] = resumo.apply(definir_status, axis=1)
+        resumo['Atingimento %'] = (resumo['ratio_atingimento'] * 100
+                                   ).fillna(0).round(0).astype(int).astype(str) + '%'
+
         resumo.rename(
             columns={
                 schema.COL_NAME: 'Nome do Aluno', 
@@ -52,5 +53,7 @@ class SummarySheetGenerator:
             },
             inplace=True
         )
-        cols = ['Nome do Aluno', 'Coordenador', 'Situacao Geral no Mês']
+        
+        cols = ['Nome do Aluno', 'Coordenador', 'Situacao Geral no Mês', 'Atingimento %']
+        
         return {schema.ABA_RESUMO_POR_ALUNO: resumo[cols]}
