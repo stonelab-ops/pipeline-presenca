@@ -13,6 +13,7 @@ from .domain.services.report_generators.kpi_sheets import KpiSheetGenerator
 from .domain.services.report_generators.inactivity_sheet import InactivitySheetGenerator
 from .domain.services.report_generators.biometry_cleanup_sheet import BiometryCleanupSheetGenerator
 from .domain.services.report_generators.unified_pivot_sheet import UnifiedPivotSheetGenerator 
+from .domain.services.report_generators.debtors_sheet import DebtorsSheetGenerator
 import pandas as pd
 import calendar
 from datetime import datetime
@@ -109,6 +110,9 @@ class PresencePipeline:
             pivot_gen = UnifiedPivotSheetGenerator(report_with_kpis, summary_tabs)
             pivot_tabs = pivot_gen.generate()
 
+            debtors_gen = DebtorsSheetGenerator(summary_tabs, processed_data)
+            debtors_tabs = debtors_gen.generate()
+
             kpi_gen = KpiSheetGenerator(report_with_kpis)
             inactivity_gen = InactivitySheetGenerator(processed_data, self.config)
             cleanup_gen = BiometryCleanupSheetGenerator(processed_data, self.config)
@@ -116,7 +120,8 @@ class PresencePipeline:
             final_tabs = {}
             final_tabs.update(action_gen.generate())
             final_tabs.update(summary_tabs) 
-            final_tabs.update(pivot_tabs)   
+            final_tabs.update(pivot_tabs)  
+            final_tabs.update(debtors_tabs) 
             final_tabs.update(kpi_gen.generate())
             final_tabs.update(inactivity_gen.generate())
             final_tabs.update(cleanup_gen.generate())
