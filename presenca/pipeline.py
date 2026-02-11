@@ -110,7 +110,7 @@ class PresencePipeline:
             pivot_gen = UnifiedPivotSheetGenerator(report_with_kpis, summary_tabs)
             pivot_tabs = pivot_gen.generate()
 
-            debtors_gen = DebtorsSheetGenerator(summary_tabs, processed_data)
+            debtors_gen = DebtorsSheetGenerator(summary_tabs)
             debtors_tabs = debtors_gen.generate()
 
             kpi_gen = KpiSheetGenerator(report_with_kpis)
