@@ -117,17 +117,30 @@ class PresencePipeline:
             inactivity_gen = InactivitySheetGenerator(processed_data, self.config)
             cleanup_gen = BiometryCleanupSheetGenerator(processed_data, self.config)
 
-            final_tabs = {}
-            final_tabs.update(action_gen.generate())
-            final_tabs.update(summary_tabs) 
-            final_tabs.update(pivot_tabs)  
-            final_tabs.update(debtors_tabs) 
-            final_tabs.update(kpi_gen.generate())
-            final_tabs.update(inactivity_gen.generate())
-            final_tabs.update(cleanup_gen.generate())
+            alunos_na_base = report_with_kpis[schema.COL_NAME].nunique()
+            alunos_no_resumo = summary_tabs[schema.ABA_RESUMO_POR_ALUNO]['Nome do Aluno'].nunique()
             
-            log.info(f"Geração de Abas: {len(final_tabs)} abas criadas.")
+            if alunos_na_base == alunos_no_resumo:
+                log.info(f"✅ AUDITORIA OK: Todos os {alunos_na_base} alunos foram mapeados nos relatórios finais. Ninguém se perdeu.")
+            else:
+                log.error(f"❌ ALERTA DE PERDA DE DADOS: Temos {alunos_na_base} alunos na base, mas apenas {alunos_no_resumo} no resumo!")
 
+            final_tabs = {}
+            
+            # 1. Visão de Gestão e Ação 
+            final_tabs.update(pivot_tabs)      
+            final_tabs.update(debtors_tabs)    
+            final_tabs.update(summary_tabs)    
+            
+            # 2. Base Analítica Tratada e KPIs 
+            final_tabs.update(kpi_gen.generate()) 
+            
+            # 3. Listas de Controle, Limpeza e Dados Sem Tratamento (Ficam no final)
+            final_tabs.update(action_gen.generate())     
+            final_tabs.update(inactivity_gen.generate()) 
+            final_tabs.update(cleanup_gen.generate())    
+            
+            log.info(f"Geração de Abas: {len(final_tabs)} abas criadas e ordenadas.")
             log.info("Escrita 1/2: Salvando Relatório Mensal (Histórico)...")
             output_file_path = self.data_writer.save_report_to_excel(
                 report_tabs=final_tabs,

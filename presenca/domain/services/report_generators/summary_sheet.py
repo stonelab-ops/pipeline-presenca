@@ -9,7 +9,7 @@ class SummarySheetGenerator:
         self.config = config
 
     def generate(self) -> dict:
-        if self.report_kpi.empty or 'meta_dinamica' not in self.report_kpi.columns:
+        if self.report_kpi.empty or 'workdays' not in self.report_kpi.columns:
             return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
             
         df = self.report_kpi.copy()
@@ -21,18 +21,16 @@ class SummarySheetGenerator:
         resumo = df.groupby([schema.COL_NAME, 'coordinator_name']).agg(
             total_presenca=('observed_frequency', 'sum'),
             total_meta=('meta_dinamica', 'sum'),
+            total_uteis=('workdays', 'sum'),
             total_justificativas=('justified_days', 'sum') 
         ).reset_index()
-        
-        if resumo.empty:
-            return {schema.ABA_RESUMO_POR_ALUNO: pd.DataFrame()}
 
         def calcular_porcentagem(row):
-            if row['total_meta'] == 0:
-                return 1.0 
-            return row['total_presenca'] / row['total_meta']
+            if row['total_uteis'] <= 0: return 0.0
+            valor = row['total_presenca'] / row['total_uteis']
+            return min(valor, 1.0)
 
-        resumo['ratio_atingimento'] = resumo.apply(calcular_porcentagem, axis=1)
+        resumo['ratio_visual'] = resumo.apply(calcular_porcentagem, axis=1)
 
         def definir_status(row):
             if row['total_presenca'] >= row['total_meta']:
@@ -42,8 +40,7 @@ class SummarySheetGenerator:
             return schema.STATUS_NAO_ATINGIU
 
         resumo['Status'] = resumo.apply(definir_status, axis=1)
-        resumo['Atingimento %'] = (resumo['ratio_atingimento'] * 100
-                                   ).fillna(0).round(0).astype(int).astype(str) + '%'
+        resumo['Atingimento %'] = (resumo['ratio_visual'] * 100).round(0).astype(int).astype(str) + '%'
 
         resumo.rename(
             columns={
@@ -55,5 +52,4 @@ class SummarySheetGenerator:
         )
         
         cols = ['Nome do Aluno', 'Coordenador', 'Situacao Geral no Mês', 'Atingimento %']
-        
         return {schema.ABA_RESUMO_POR_ALUNO: resumo[cols]}

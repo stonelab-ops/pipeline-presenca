@@ -14,11 +14,9 @@ class KpiSheetGenerator:
 
     def generate(self) -> Dict[str, pd.DataFrame]:
         report_raw_output = self._prepare_report_raw_output()
-        
         gpb = self._calculate_base_metrics()
         
         if gpb.empty:
-            log.warning("KpiSheets: DataFrame base (gpb) está vazio. Gerando apenas RAW.")
             return {
                 schema.ABA_REPORT_RAW: report_raw_output,
                 schema.ABA_KPI_GERAL: pd.DataFrame()
@@ -55,7 +53,6 @@ class KpiSheetGenerator:
             schema.COL_DATE: schema.OUT_COL_SEMANA,
             "observed_frequency": schema.OUT_COL_FREQ_OBS,
             "expected_frequency": schema.OUT_COL_FREQ_ESP,
-            "meta_dinamica": "Meta Dinâmica (60%)",
             "workdays": schema.OUT_COL_DIAS_UTEIS,
             "justified_days": schema.OUT_COL_FALTAS_JUST,
             "vacation_days": schema.OUT_COL_DIAS_FERIAS,
